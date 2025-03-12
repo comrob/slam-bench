@@ -1,0 +1,26 @@
+services:
+  run_bag:
+    build: .
+    image: slam_competition:latest
+    container_name: run_bag
+    user: "${UID}:${GID}"  # Run container as host user
+    environment:
+      - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
+      - BAGFILE_NAME=${BAGFILE_NAME}
+      - BAGFILE=/rosbag_files/${BAGFILE_NAME}
+    volumes:
+      - ${BAGFILES_PATH_HOST}:/rosbag_files
+    network_mode: "host"
+
+  evaluate_trajectory:
+    build: .
+    image: slam_competition:latest
+    container_name: evaluate_trajectory
+    user: "${UID}:${GID}"  # Run container as host user
+    environment:
+      - GT_FILE=${GT_FILE}
+      - EST_FILE=${EST_FILE}
+      - TEST_MODE=${TEST_MODE}
+    volumes:
+      - ${BAGFILES_PATH_HOST}:/rosbag_files
+    entrypoint: ["/rosbag_player/entrypoint_evaluate.sh"]
