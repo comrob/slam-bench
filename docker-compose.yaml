@@ -1,26 +1,52 @@
 services:
-  run_bag:
-    build: .
-    image: slam_competition:latest
-    container_name: run_bag
+  play_bag:
+    image: ghcr.io/comrob/slam-bench:latest
+    container_name: play_bag
     user: "${UID}:${GID}"  # Run container as host user
     environment:
-      - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
+      - DATASET_NAME=${DATASET_NAME}
       - BAGFILE_NAME=${BAGFILE_NAME}
-      - BAGFILE=/rosbag_files/${BAGFILE_NAME}
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
     network_mode: "host"
-
+  
   evaluate_trajectory:
-    build: .
-    image: slam_competition:latest
+    image: ghcr.io/comrob/slam-bench:latest
     container_name: evaluate_trajectory
     user: "${UID}:${GID}"  # Run container as host user
     environment:
-      - GT_FILE=${GT_FILE}
-      - EST_FILE=${EST_FILE}
       - TEST_MODE=${TEST_MODE}
+      - DATASET_NAME=${DATASET_NAME}
+      - REFERENCE_TRAJECTORY_FILE=${REFERENCE_TRAJECTORY_FILE}
+      - ESTIMATED_TRAJECTORY_FILE=${ESTIMATED_TRAJECTORY_FILE}
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
     entrypoint: ["/rosbag_player/entrypoint_evaluate.sh"]
+  
+  run_slam_nvidia:
+    image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}
+    container_name: run_slam_nvidia
+    network_mode: "host"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=${DISPLAY}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+  
+  run_slam:
+    image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}
+    container_name: run_slam
+    network_mode: "host"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=${DISPLAY}
+  

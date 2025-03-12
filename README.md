@@ -1,119 +1,135 @@
-# ROS1 Bagfile Player with Odometry Logger
+# SLAM Benchmark Competition
 
-This project provides a **Dockerized** solution for playing **ROS1 bagfiles**, publishing relevant topics to the host system, and recording odometry data from the `/estimated_odom` topic. The logged trajectory is stored in a CSV file for subsequent analysis. 
+This project facilitates the evaluation of dockerized SLAM systems for the CRL competition. It provides three Docker services:
 
-Additionally, the project includes a trajectory evaluation service that computes RPE (Relative Pose Error) and ATE (Absolute Trajectory Error) using ground truth data, facilitating performance assessment of odometry estimations.
+- **`play_bag`**: Plays a bagfile and logs the estimated odometry to a CSV file.
+- **`evaluate_trajectory`**: Compares the estimated trajectory against the ground truth trajectory.
+- **`run_slam`**: Runs the SLAM system's Docker container.
 
 ---
 
-## 📁 Project Structure
-```
-├── docker-compose.yaml
-├── Dockerfile
-├── entrypoint_evaluate.sh
-├── entrypoint.sh
-├── README.md
-└── scripts
-    ├── odometry_logger.py
-    ├── trajectory_analysis_host.ipynb
-    └── trajectory_analysis.py
-```
+## 📦 Prerequisites
+
+Ensure the following dependencies are installed:
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
 ---
 
 ## 🚀 Quick Start
 
-### Specify the Bagfiles
+### 1️⃣ Specify the Bagfiles
 
-In the `.env` file, specify:
-- `BAGFILES_PATH_HOST`: The path to the directory containing the bagfiles dataset on the host machine.
-- `BAGFILE_NAME`: The name of the bagfile to play relative to the `BAGFILES_PATH_HOST`.
-- `GT_FILE`: The path to the ground truth file relative to the `BAGFILES_PATH_HOST`.
+Modify the `.env` file to define:
 
-Example:
+- **`BAGFILES_PATH_HOST`**: Path to the directory containing the bagfile dataset on the host machine.
+- **`DATASET_NAME`**: Name of the dataset folder inside `BAGFILES_PATH_HOST`.
+
+To simplify access, create a symbolic link:
+
 ```bash
-BAGFILES_PATH_HOST=/mnt/storage/bags/shellbe_2024-02-21/final/shellbeLabCalibration
-BAGFILE_NAME=sensors_shellbeLabCalibration_2025-02-25-16-53-00.bag
-GT_FILE=reference/totalStation_shellbeLabCalibration_2025-02-25-16-52-55_reference.csv
+ln -s <your_bagfiles_path> $HOME/bagfiles_competition
 ```
 
-### 1️⃣ **Build the Docker Image**
-Run the following command to build the Docker container:
+#### Dataset Structure
 
-```bash
-docker compose build
+Ensure the dataset follows this structure:
+
+```
+|-- $BAGFILES_PATH_HOST
+    |-- $DATASET_NAME
+        |-- $DATASET_NAME.bag  # Bagfile to be evaluated
+        |-- reference
+            |-- $DATASET_NAME.csv  # Ground truth trajectory
 ```
 
 ---
 
-### 2️⃣ **Run the Dataset Evaluation**
-First, run the SLAM on your machine. Ensure that the estimated odometry is published to the `/estimated_odom` topic.
+### 2️⃣ Run Your SLAM System
 
-Then, execute the following command to process the dataset and log the estimated odometry:
+To execute the example SLAM system:
 
 ```bash
-docker compose up run_bag
+docker compose up run_slam
+```
+
+- Your SLAM system must run as a ROS1 node and publish estimated odometry to `/estimated_odom`.
+- Ensure your SLAM system is dockerized by specifying its Docker image in the `.env` file. You can find our containerized SLAM system at [liorf-crl](https://github.com/comrob/liorf-crl):
+
+```bash
+SLAM_IMAGE=ghcr.io/comrob/liorf-crl:latest
+```
+
+Alternatively, you can run your SLAM system directly on the host machine without Docker for testing purposes. Ensure that it correctly publishes odometry to `/estimated_odom`
+
+---
+
+### 3️⃣ Run Dataset Evaluation
+
+To run the dataset and log estimated odometry:
+
+```bash
+docker compose up play_bag
 ```
 
 ✔ This will:
-- Start `roscore`
-- Run the **odometry logger** before playing the bagfile
-- Play the bagfile while logging `/estimated_odom` to `$BAGFILES_PATH_HOST/evaluation_output/estimated_trajectory.csv`
+
+- Start `roscore` (unless already running by the SLAM system).
+- Launch the **odometry logger** before playing the bagfile.
+- Log `/estimated_odom` data to `$BAGFILES_PATH_HOST/evaluation_output/estimated_trajectory.csv`.
 
 ---
 
-### 3️⃣ **Verify Logged Data**
-After stopping the container, check the logged trajectory on your **host machine**:
+### 4️⃣ Verify Logged Data
+
+After stopping the container, inspect the logged trajectory:
 
 ```bash
 cat $BAGFILES_PATH_HOST/evaluation_output/estimated_trajectory.csv
 ```
 
-📌 **Expected CSV format** (TUM format):
+📌 **Expected Format (TUM format, no header):**
 
 ```
-timestamp x y z qw qx qy qz (no header)
+timestamp x y z qw qx qy qz
 ```
 
 ---
 
-## 🛠 **Troubleshooting**
-  
-- **Odometry logger not writing data**  
-  - Check that `/estimated_odom` is published by your SLAM system.
+### 5️⃣ Evaluate the Trajectory
 
-### 4️⃣ **Evaluate the Trajectory**
+Set the appropriate mode based on trajectory length:
 
-- Specify the ground truth file in the `.env` file.
-
-It should be relative to the `BAGFILES_PATH_HOST`.
-Example:
 ```bash
-GT_FILE=reference/totalStation_shellbeLabCalibration_2025-02-25-16-52-55_reference.csv
+TEST_MODE=1  # For datasets under 50m
+TEST_MODE=0  # For datasets over 50m
 ```
 
-For datasets under 50 meters, use:
-```bash
-TEST_MODE=1
-```
-Otherwise, use:
-```bash
-TEST_MODE=0
-```
-This will switch between delta sets for RPE calculation.
+This setting adjusts the RPE calculation method.
 
-Run the following command to evaluate the trajectory:
+To evaluate the trajectory:
 
 ```bash
 docker compose up evaluate_trajectory
 ```
 
-The output will be saved to the `evaluation_output` directory in the `BAGFILES_PATH_HOST`.
-It will contain the following files:
-- `estimated_trajectory.csv`: The estimated trajectory from the odometry logger.
-- `trajectory_analysis.pdf`: A PDF file containing trajectory plots and evaluation metrics.
-- `trajectory_analysis.yaml`: A YAML file containing trajectory evaluation metrics.
+Output is saved in `$BAGFILES_PATH_HOST/$DATASET_NAME/evaluation_output/`, containing:
 
-## 📜 **License**
-This project is open-source. Feel free to modify and extend it for your use! 🚀
+- `estimated_trajectory.csv`: Logged estimated trajectory.
+- `trajectory_analysis.pdf`: Trajectory plots and evaluation metrics.
+- `trajectory_analysis.yaml`: YAML file with trajectory evaluation metrics.
+
+---
+
+## 🛠 Troubleshooting
+
+- **Odometry logger is not writing data**
+  - Ensure `/estimated_odom` is correctly published by your SLAM system.
+
+---
+
+## 📜 License
+
+This project is open-source. Feel free to modify and extend it! 🚀
 

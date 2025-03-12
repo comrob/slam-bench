@@ -16,12 +16,11 @@ def get_file_paths():
     """
     Define and return file paths for the bagfiles.
     """
-    base_path = "/rosbag_files"
-    default_gt_file = os.path.join("reference", "totalStation_shellbeLabCalibration_2025-02-25-16-52-55_reference.csv")
-    default_est_file = os.path.join("evaluation_output", "estimated_trajectory.csv")
+    dataset_name = os.getenv("DATASET_NAME")
+    base_path = os.path.join("/rosbag_files", dataset_name)
 
-    gt_file = os.getenv("GT_FILE", default_gt_file)
-    est_file = os.getenv("EST_FILE", default_est_file)
+    gt_file = os.getenv("REFERENCE_TRAJECTORY_FILE")
+    est_file = os.getenv("ESTIMATED_TRAJECTORY_FILE")
 
     gt_file = os.path.join(base_path, gt_file)
     est_file = os.path.join(base_path, est_file)
@@ -75,7 +74,17 @@ def process_trajectories():
     Returns the processed (reference, estimated) trajectory pair.
     """
     base_path, gt_file, est_file = get_file_paths()
-    traj_ref, traj_est = load_trajectories(gt_file, est_file)
+    # check if the files exist
+    if not os.path.exists(gt_file) or not os.path.exists(est_file):
+        print(f"Missing required files: {gt_file} or {est_file}")
+        exit(1)
+    
+    try:
+        traj_ref, traj_est = load_trajectories(gt_file, est_file)
+    except Exception as e:
+        print(f"Error loading trajectories: {e}")
+        print(f"file paths: {gt_file} {est_file}")
+        exit(1)
     
     traj_ref_sync, traj_est_sync = synchronize_trajectories(traj_ref, traj_est)
     traj_ref_aligned, traj_est_aligned = align_trajectories(traj_ref_sync, traj_est_sync)

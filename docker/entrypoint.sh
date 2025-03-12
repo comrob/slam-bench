@@ -19,6 +19,6 @@ python3 /rosbag_player/scripts/odometry_logger.py &
 # Wait a bit to ensure odometry logger starts properly
 sleep 2
 
-export BAGFILE="/rosbag_files/$BAGFILE_NAME"
-echo "Playing bag file: $BAGFILE ($BAGFILES_PATH_HOST/$BAGFILE_NAME on host)"
+export BAGFILE="/rosbag_files/$DATASET_NAME/$BAGFILE_NAME"
+echo "Playing bag file: $BAGFILE ($BAGFILES_PATH_HOST/$DATASET_NAME/$BAGFILE_NAME on host)"
 rosbag play $BAGFILE --clock

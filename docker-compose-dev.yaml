@@ -1,0 +1,8 @@
+services:
+  play_bag:
+    build: .
+    image: slam-bench:latest
+
+  evaluate_trajectory:
+    build: .
+    image: slam-bench:latest
