@@ -2,10 +2,11 @@ services:
   play_bag:
     image: ghcr.io/comrob/slam-bench:latest
     container_name: play_bag
-    user: "${UID}:${GID}"  # Run container as host user
+    user: "${UID:-1000}:${UID:-1000}"  # Run container as host user
     environment:
       - DATASET_NAME=${DATASET_NAME}
       - BAGFILE_NAME=${BAGFILE_NAME}
+      - ROS_HOME=/tmp/.ros
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
     network_mode: "host"
@@ -13,7 +14,7 @@ services:
   evaluate_trajectory:
     image: ghcr.io/comrob/slam-bench:latest
     container_name: evaluate_trajectory
-    user: "${UID}:${GID}"  # Run container as host user
+    user: "${UID:-1000}:${UID:-1000}"  # Run container as host user
     environment:
       - TEST_MODE=${TEST_MODE}
       - DATASET_NAME=${DATASET_NAME}
