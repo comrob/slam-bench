@@ -7,6 +7,7 @@ services:
       - DATASET_NAME=${DATASET_NAME}
       - BAGFILE_NAME=${BAGFILE_NAME}
       - ROS_HOME=/tmp/.ros
+      - ROSBAG_PLAY_RATE=${ROSBAG_PLAY_RATE}
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
     network_mode: "host"

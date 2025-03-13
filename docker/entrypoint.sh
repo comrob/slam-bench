@@ -21,4 +21,4 @@ sleep 2
 
 export BAGFILE="/rosbag_files/$DATASET_NAME/$BAGFILE_NAME"
 echo "Playing bag file: $BAGFILE ($BAGFILES_PATH_HOST/$DATASET_NAME/$BAGFILE_NAME on host)"
-rosbag play $BAGFILE --clock
+rosbag play $BAGFILE --clock -r$ROSBAG_PLAY_RATE
