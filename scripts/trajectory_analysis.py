@@ -300,7 +300,7 @@ if __name__ == '__main__':
     
     # Define deltas for RPE computation
     TEST_DELTAS = [1, 2, 5, 10, 20, 50, 100]
-    EVALUAITON_DELTAS = [100, 200, 300, 400, 500, 600, 700, 800]
+    EVALUAITON_DELTAS = [5, 100, 200, 300, 400, 500, 600, 700, 800]
     
     TEST_MODE = os.getenv("TEST_MODE", 0)
     print(f"Test mode: {TEST_MODE}")

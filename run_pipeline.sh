@@ -7,9 +7,15 @@ if [ -f .env ]; then
     set +o allexport
 fi
 
+# Determine docker-compose command based on DEV_DOCKER
+DOCKER_COMPOSE_CMD="docker compose"
+if [ "$DEV_DOCKER" == "true" ]; then
+    DOCKER_COMPOSE_CMD="docker compose -f docker-compose.yaml -f docker-compose-dev.yaml"
+fi
+
 # Start the SLAM container in the background
 echo "Starting SLAM system..."
-docker compose up run_slam &
+$DOCKER_COMPOSE_CMD up run_slam &
 SLAM_PID=$!
 
 # Wait a few seconds to ensure SLAM starts properly
@@ -17,15 +23,15 @@ sleep 5
 
 # Start playing the bagfile
 echo "Playing bagfile..."
-docker compose up play_bag
+$DOCKER_COMPOSE_CMD up play_bag
 
 # After bag playback finishes, stop the SLAM container
 echo "Stopping SLAM system..."
-docker compose down run_slam
+$DOCKER_COMPOSE_CMD down run_slam
 
 # Run trajectory evaluation
 echo "Running trajectory evaluation..."
-docker compose up evaluate_trajectory
+$DOCKER_COMPOSE_CMD up evaluate_trajectory
 
 # Open the evaluation report
 echo "Opening evaluation report..."
