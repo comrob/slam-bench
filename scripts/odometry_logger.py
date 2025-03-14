@@ -33,13 +33,13 @@ def odometry_callback(msg):
         # write in TUM format
         writer.writerow([timestamp, x, y, z, qw, qx, qy, qz])
     
-    rospy.loginfo(f"Logged Odom: timestamp={timestamp:.3f}, x={x:.3f}, y={y:.3f}, z={z:.3f}, "
-                    f"q=[{qw:.3f}, {qx:.3f}, {qy:.3f}, {qz:.3f}]")
+    rospy.loginfo_throttle(0.1, f"Logged Odom: timestamp={timestamp:.3f}, x={x:.3f}, y={y:.3f}, z={z:.3f}, "
+                            f"q=[{qw:.3f}, {qx:.3f}, {qy:.3f}, {qz:.3f}]")
 
 def main():
     """Initializes the ROS node and starts logging odometry data."""
     rospy.init_node("odometry_logger", anonymous=True)
-    # clean the file
+    # Clean the file
     with open(CSV_FILE, "w") as f:
         writer = csv.writer(f)
     
