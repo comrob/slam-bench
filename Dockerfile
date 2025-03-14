@@ -20,13 +20,13 @@ WORKDIR /rosbag_player
 # Copy scripts into the container
 COPY scripts/odometry_logger.py /rosbag_player/scripts/odometry_logger.py
 COPY scripts/trajectory_analysis.py /rosbag_player/scripts/trajectory_analysis.py
-COPY docker/entrypoint.sh /rosbag_player/entrypoint.sh
+COPY docker/entrypoint_bagplay.sh /rosbag_player/entrypoint_bagplay.sh
 COPY docker/entrypoint_evaluate.sh /rosbag_player/entrypoint_evaluate.sh
 
 # Ensure scripts are executable
-RUN chmod +x /rosbag_player/entrypoint.sh
+RUN chmod +x /rosbag_player/entrypoint_bagplay.sh
 RUN chmod +x /rosbag_player/scripts/odometry_logger.py
 RUN chmod +x /rosbag_player/entrypoint_evaluate.sh
 
 # Set entrypoint
-ENTRYPOINT ["/rosbag_player/entrypoint.sh"]
+ENTRYPOINT ["/rosbag_player/entrypoint_bagplay.sh"]

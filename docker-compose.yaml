@@ -8,6 +8,8 @@ services:
       - BAGFILE_NAME=${BAGFILE_NAME}
       - ROS_HOME=/tmp/.ros
       - ROSBAG_PLAY_RATE=${ROSBAG_PLAY_RATE}
+      - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
+      - SENSOR_TRACKS=${SENSOR_TRACKS}
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
     network_mode: "host"
