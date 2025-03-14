@@ -1,10 +1,31 @@
 # SLAM Benchmark Competition
 
-This project facilitates the evaluation of dockerized SLAM systems for the CRL competition. It provides three Docker services:
+This project facilitates the evaluation of dockerized SLAM systems for the CRL competition. It provides an automated pipeline to run and evaluate SLAM systems using ROS1-based Docker containers.
 
-- **`play_bag`**: Plays a bagfile and logs the estimated odometry to a CSV file.
-- **`evaluate_trajectory`**: Compares the estimated trajectory against the ground truth trajectory.
-- **`run_slam`**: Runs the SLAM system's Docker container.
+---
+
+## ⚡ TL;DR - Quick Usage Guide
+
+1. **Ensure prerequisites are installed:** [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
+2. **Modify the `.env` file** to set dataset paths, SLAM parameters, and the SLAM system to be used.
+3. **Run the full SLAM pipeline:**
+
+```bash
+./run_pipeline.sh
+```
+
+✔ This will:
+- Start the SLAM system in a Docker container.
+- Play the selected bagfile.
+- Stop the SLAM system after playback.
+- Evaluate the estimated trajectory.
+- Open the evaluation report automatically.
+
+4. **To visualize the SLAM output in RViz**, run the following in your terminal:
+
+```bash
+xhost +
+```
 
 ---
 
@@ -17,11 +38,7 @@ Ensure the following dependencies are installed:
 
 ---
 
-## 🚀 Quick Start
-
-### 1️⃣ Specify the Bagfiles
-
-This section outlines how to configure the dataset and sensor selection for the SLAM evaluation.
+## 🚀 Setting Up the Dataset
 
 Modify the `.env` file to define:
 
@@ -37,7 +54,7 @@ To simplify access, you can create a symbolic link for easier dataset management
 ln -s <your_bagfiles_path> $HOME/bagfiles_competition
 ```
 
-#### Dataset Structure
+### Dataset Structure
 
 Ensure the dataset follows this structure:
 
@@ -51,84 +68,35 @@ Ensure the dataset follows this structure:
 
 ---
 
-### 2️⃣ Run Your SLAM System
+## 🏃 Running the Full SLAM Pipeline
 
-To execute the example SLAM system:
-
-```bash
-docker compose up run_slam
-```
-
-- Your SLAM system must run as a ROS1 node and publish estimated odometry to `/estimated_odom`.
-- Ensure your SLAM system is dockerized by specifying its Docker image in the `.env` file. You can find our containerized SLAM system at [liorf-crl](https://github.com/comrob/liorf-crl):
+Execute the entire pipeline in a single command:
 
 ```bash
-SLAM_IMAGE=ghcr.io/comrob/liorf-crl:latest
-```
-
-Alternatively, you can run your SLAM system directly on the host machine without Docker for testing purposes. Ensure that it correctly publishes odometry to `/estimated_odom`.
-
----
-
-### 3️⃣ Run Dataset Evaluation
-
-To run the dataset and log estimated odometry:
-
-```bash
-docker compose up play_bag
+./run_pipeline.sh
 ```
 
 ### What Happens When You Run This?
 
-When you execute the `play_bag` service, it will:
+- The SLAM container starts.
+- The bagfile plays according to `SENSOR_MODE`.
+- The SLAM container is automatically stopped after playback.
+- The estimated trajectory is evaluated.
+- The evaluation report (`trajectory_analysis.pdf`) is opened.
 
-- Start `roscore` (unless already running by the SLAM system).
-- Launch the **odometry logger** before playing the bagfile.
-- Log `/estimated_odom` data to `$BAGFILES_PATH_HOST/evaluation_output/estimated_trajectory.csv`.
-- Play only the specified sensor set based on `SENSOR_MODE`.
-
----
-
-### 4️⃣ Verify Logged Data
-
-After stopping the container, inspect the logged trajectory:
+To manually start components, use:
 
 ```bash
-cat $BAGFILES_PATH_HOST/evaluation_output/estimated_trajectory.csv
+docker compose up run_slam  # Start SLAM
 ```
-
-📌 **Expected Format (TUM format, no header):**
-
-```
-timestamp x y z qw qx qy qz
-```
-
----
-
-### 5️⃣ Evaluate the Trajectory
-
-### Adjusting the Test Mode
-
-The appropriate mode should be selected based on the trajectory length. Smaller datasets require different delta distances for RPE calculation.
 
 ```bash
-TEST_MODE=1  # For datasets under 50m
-TEST_MODE=0  # For datasets over 50m
+docker compose up play_bag  # Play dataset
 ```
-
-This setting adjusts the RPE calculation method.
-
-To evaluate the trajectory:
 
 ```bash
-docker compose up evaluate_trajectory
+docker compose up evaluate_trajectory  # Evaluate trajectory
 ```
-
-Output is saved in `$BAGFILES_PATH_HOST/$DATASET_NAME/evaluation_output/`, containing:
-
-- `estimated_trajectory.csv`: Logged estimated trajectory.
-- `trajectory_analysis.pdf`: Trajectory plots and evaluation metrics.
-- `trajectory_analysis.yaml`: YAML file with trajectory evaluation metrics.
 
 ---
 
@@ -141,6 +109,8 @@ If you encounter any issues, refer to the common problems and solutions below.
 - **Sensors not playing as expected**
   - Check `SENSOR_MODE` in the `.env` file. Ensure it is correctly set.
   - If `passive_only` is set, LiDAR topics will not be played.
+- **RViz is not displaying SLAM output**
+  - Run `xhost +` in your terminal before launching the pipeline.
 
 ---
 
