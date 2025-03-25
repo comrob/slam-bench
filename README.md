@@ -63,7 +63,7 @@ Ensure the dataset follows this structure:
     |-- $DATASET_NAME
         |-- $DATASET_NAME.bag  # Bagfile to be evaluated
         |-- reference
-            |-- $DATASET_NAME.csv  # Ground truth trajectory
+            |-- $DATASET_NAME.txt  # Ground truth trajectory
 ```
 
 ---

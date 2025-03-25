@@ -18,12 +18,12 @@ def get_file_paths():
     """
     dataset_name = os.getenv("DATASET_NAME")
     base_path = os.path.join("/rosbag_files", dataset_name)
-
     gt_file = os.getenv("REFERENCE_TRAJECTORY_FILE")
-    est_file = os.getenv("ESTIMATED_TRAJECTORY_FILE")
-
     gt_file = os.path.join(base_path, gt_file)
-    est_file = os.path.join(base_path, est_file)
+    
+    base_est_file = "/trajectory_files"
+    est_file = os.getenv("ESTIMATED_TRAJECTORY_FILE", "estimated_trajectory.txt")
+    est_file = os.path.join(base_est_file, est_file)
 
     return base_path, gt_file, est_file
 
@@ -76,8 +76,12 @@ def process_trajectories():
     base_path, gt_file, est_file = get_file_paths()
     # check if the files exist
     if not os.path.exists(gt_file) or not os.path.exists(est_file):
-        print(f"Missing required files: {gt_file} or {est_file}")
+        if not os.path.exists(gt_file):
+            print (f"File {gt_file} does not exist (gt_file)")
+        if not os.path.isfile(est_file):
+            print (f"File {est_file} does not exist (est_file)")
         exit(1)
+        
     
     try:
         traj_ref, traj_est = load_trajectories(gt_file, est_file)
@@ -321,10 +325,13 @@ if __name__ == '__main__':
     rpe_table, avg_relative_rpe = create_rpe_table(rpe_results)
     ate_rmse = compute_ate_rmse(rpe_results)
     
+    base_path, gt_file, est_file = get_file_paths()
     # Export results to YAML
-    yaml_filename = os.path.join(base_path, "evaluation_output", "trajectory_analysis.yaml")
+    # get the folder name of the est_file
+    yaml_dir = os.path.dirname(est_file)
+    yaml_filename = os.path.join(yaml_dir, "trajectory_analysis.yaml")
     export_results_to_yaml(yaml_filename, avg_relative_rpe, ate_rmse, rpe_results)
     
     # Create and save visualization
-    pdf_filename = os.path.join(base_path, "evaluation_output", "trajectory_analysis.pdf")
+    pdf_filename = os.path.join(yaml_dir, "trajectory_analysis.pdf")
     create_figure(traj_pair[0], traj_pair[1], rpe_table, avg_relative_rpe, ate_rmse, pdf_filename)

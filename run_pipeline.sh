@@ -23,6 +23,8 @@ sleep 5
 
 # Start playing the bagfile
 echo "Playing bagfile..."
+EVALUATION_OUTPUT_PATH="$BAGFILES_PATH_HOST/$DATASET_NAME/evaluation_output"
+mkdir -p "$EVALUATION_OUTPUT_PATH"
 $DOCKER_COMPOSE_CMD up play_bag
 
 # After bag playback finishes, stop the SLAM container

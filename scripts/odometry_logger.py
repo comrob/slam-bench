@@ -5,11 +5,13 @@ import os
 from nav_msgs.msg import Odometry
 
 # Ensure that the data directory exists inside the mounted bagfiles folder
-DATASET = os.getenv("DATASET_NAME", "default")
-DATA_DIR = os.path.join("/rosbag_files", DATASET, "evaluation_output")
-CSV_FILE = os.path.join(DATA_DIR, "estimated_trajectory.csv")
+OUTPUT_PATH_DIR = "/trajectory_files"
+OUTPUT_FILE_NAME = os.getenv("OUTPUT_FILE_NAME", "estimated_trajectory.txt")
+if len(OUTPUT_FILE_NAME) == 0:
+    OUTPUT_FILE_NAME = "estimated_trajectory.txt"
+CSV_FILE = os.path.join(OUTPUT_PATH_DIR, OUTPUT_FILE_NAME)
 
-os.makedirs(DATA_DIR, exist_ok=True)  # Creates the folder if it doesn't exist
+# os.makedirs(DATA_DIR, exist_ok=True)  # Creates the folder if it doesn't exist
 
 # Write the header if the file does not exist
 if not os.path.isfile(CSV_FILE):

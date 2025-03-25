@@ -1,23 +1,27 @@
 services:
   play_bag:
     image: ghcr.io/comrob/slam-bench:latest
+    init: true
     container_name: play_bag
-    user: "${UID:-1000}:${UID:-1000}"  # Run container as host user
+    user: "1000:1000"  # Run container as host user
     environment:
+      - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
       - DATASET_NAME=${DATASET_NAME}
       - BAGFILE_NAME=${BAGFILE_NAME}
       - ROS_HOME=/tmp/.ros
       - ROSBAG_PLAY_RATE=${ROSBAG_PLAY_RATE}
-      - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
       - SENSOR_TRACKS=${SENSOR_TRACKS}
+      - OUTPUT_FILE_NAME=${OUTPUT_FILE_NAME}
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
+      - ${OUTPUT_PATH_HOST}:/trajectory_files
     network_mode: "host"
   
   evaluate_trajectory:
+    init: true
     image: ghcr.io/comrob/slam-bench:latest
     container_name: evaluate_trajectory
-    user: "${UID:-1000}:${UID:-1000}"  # Run container as host user
+    user: "1000:1000"  # Run container as host user
     environment:
       - TEST_MODE=${TEST_MODE}
       - DATASET_NAME=${DATASET_NAME}
@@ -25,6 +29,7 @@ services:
       - ESTIMATED_TRAJECTORY_FILE=${ESTIMATED_TRAJECTORY_FILE}
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
+      - ${OUTPUT_PATH_HOST}:/trajectory_files
     entrypoint: ["/rosbag_player/entrypoint_evaluate.sh"]
   
   run_slam_nvidia:

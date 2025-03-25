@@ -9,12 +9,23 @@ sleep 5
 
 echo "Starting odometry logger..."
 python3 /rosbag_player/scripts/odometry_logger.py &
+ODOM_LOGGER_PID=$!
 
 # Wait a bit to ensure odometry logger starts properly
 sleep 2
 
 export BAGFILE="/rosbag_files/$DATASET_NAME/$BAGFILE_NAME"
 echo "Playing bag file: $BAGFILE ($BAGFILES_PATH_HOST/$DATASET_NAME/$BAGFILE_NAME on host)"
+# check if the bag file exists
+if [ ! -f "$BAGFILE" ]; then
+    echo "Bag file not found: $BAGFILE"
+    exit 1
+else
+    echo "Bag file found: $BAGFILE"
+    # print full information about the bag file
+    ls -lh "$BAGFILE"
+    rosbag info "$BAGFILE"
+fi
 
 # Define sensor topic groups
 export PASSIVE_SENSORS=(
@@ -44,5 +55,13 @@ if [ "$SENSOR_TRACKS" = "passive_only" ]; then
     rosbag play $BAGFILE --clock -r$ROSBAG_PLAY_RATE --topics "${PASSIVE_SENSORS[@]}"
 else
     echo "Playing all sensors..."
-    rosbag play $BAGFILE --clock -r$ROSBAG_PLAY_RATE --topics "${PASSIVE_SENSORS[@]}" "${ACTIVE_SENSORS[@]}"
+    rosbag play $BAGFILE --clock --quiet -r$ROSBAG_PLAY_RATE --topics "${PASSIVE_SENSORS[@]}" "${ACTIVE_SENSORS[@]}"
+fi
+
+if ps -p "$ODOM_LOGGER_PID" > /dev/null 2>&1; then
+    echo "Odometry logger is still running. Exiting with success."
+    exit 0
+else
+    echo "Odometry logger is not running, exiting with error."
+    exit 1
 fi
