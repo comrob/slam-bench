@@ -1,6 +1,6 @@
 services:
   play_bag:
-    image: ghcr.io/comrob/slam-bench:latest
+    image: ghcr.io/sevahul/slam-bench:latest
     init: true
     container_name: play_bag
     user: "1000:1000"  # Run container as host user
@@ -19,7 +19,7 @@ services:
   
   evaluate_trajectory:
     init: true
-    image: ghcr.io/comrob/slam-bench:latest
+    image: ghcr.io/sevahul/slam-bench:latest
     container_name: evaluate_trajectory
     user: "1000:1000"  # Run container as host user
     environment:
