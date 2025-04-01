@@ -45,7 +45,7 @@ Modify the `.env` file to define:
 - **`BAGFILES_PATH_HOST`**: Path to the directory containing the bagfile dataset on the host machine.
 - **`DATASET_NAME`**: Name of the dataset folder inside `BAGFILES_PATH_HOST`.
 - **`SENSOR_MODE`**: Controls which sensors are played from the bagfile. Options:
-  - `passive_only`: Plays only passive sensors (e.g., cameras, IMUs, plant sensors).
+  - `passive`: Plays only passive sensors (e.g., cameras, IMUs, plant sensors).
   - Any other value (or unset): Plays all sensors, including LiDAR.
 
 To simplify access, you can create a symbolic link for easier dataset management:
@@ -108,7 +108,7 @@ If you encounter any issues, refer to the common problems and solutions below.
   - Ensure `/estimated_odom` is correctly published by your SLAM system.
 - **Sensors not playing as expected**
   - Check `SENSOR_MODE` in the `.env` file. Ensure it is correctly set.
-  - If `passive_only` is set, LiDAR topics will not be played.
+  - If `passive` is set, LiDAR topics will not be played.
 - **RViz is not displaying SLAM output**
   - Run `xhost +` in your terminal before launching the pipeline.
 

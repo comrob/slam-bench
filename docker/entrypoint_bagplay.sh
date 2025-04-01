@@ -50,7 +50,7 @@ export ACTIVE_SENSORS=(
 )
 
 # Construct rosbag play command
-if [ "$SENSOR_TRACKS" = "passive_only" ]; then
+if [ "$SENSOR_TRACKS" = "passive" ]; then
     echo "Playing only passive sensors..."
     rosbag play $BAGFILE --clock -r$ROSBAG_PLAY_RATE --topics "${PASSIVE_SENSORS[@]}"
 else
