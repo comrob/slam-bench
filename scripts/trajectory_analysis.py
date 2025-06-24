@@ -2,6 +2,7 @@ import os
 import copy
 import sys
 import yaml
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,25 +13,19 @@ from evo.core.trajectory import PoseTrajectory3D
 # =============================================================================
 # Configuration and Data Loading
 # =============================================================================
-def get_file_paths():
-    """
-    Define and return file paths for the bagfiles.
-    """
-    dataset_name = os.getenv("DATASET_NAME")
-    base_path = os.path.join("/rosbag_files", dataset_name)
-    gt_file = os.getenv("REFERENCE_TRAJECTORY_FILE")
-    gt_file = os.path.join(base_path, gt_file)
-    
-    base_est_file = "/trajectory_files"
-    est_file = os.getenv("ESTIMATED_TRAJECTORY_FILE", "estimated_trajectory.txt")
-    est_file = os.path.join(base_est_file, est_file)
-
-    return base_path, gt_file, est_file
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Evaluate trajectories using APE and RPE metrics.")
+    parser.add_argument("--gt", default="/reference_trajectory.txt",
+                        help="Path to the ground truth trajectory file")
+    parser.add_argument("--est", default="/estimated_trajectory.txt",
+                        help="Path to the estimated trajectory file")
+    parser.add_argument("--output", default="/evaluation_output",
+                        help="Directory to store output files")
+    parser.add_argument("--test", action='store_true',
+                        help="Use test mode with smaller RPE deltas")
+    return parser.parse_args()
 
 def load_trajectories(gt_file, est_file):
-    """
-    Load reference and estimated trajectories using the file_interface.
-    """
     traj_ref = file_interface.read_tum_trajectory_file(gt_file)
     traj_est = file_interface.read_tum_trajectory_file(est_file)
     return traj_ref, traj_est
@@ -39,65 +34,46 @@ def load_trajectories(gt_file, est_file):
 # Trajectory Processing: Synchronization, Alignment & Orientation
 # =============================================================================
 def synchronize_trajectories(traj_ref, traj_est, max_diff=0.05):
-    """
-    Synchronize the reference and estimated trajectories based on a maximum time difference.
-    """
     return sync.associate_trajectories(traj_ref, traj_est, max_diff)
 
 def align_trajectories(traj_ref_sync, traj_est_sync):
-    """
-    Align the estimated trajectory to the reference trajectory.
-    """
-    # Create deep copies to avoid modifying the originals
     traj_ref_aligned = copy.deepcopy(traj_ref_sync)
     traj_est_aligned = copy.deepcopy(traj_est_sync)
     traj_est_aligned.align(traj_ref_sync, correct_scale=False, correct_only_scale=False)
     return traj_ref_aligned, traj_est_aligned
 
 def set_identity_orientations(traj):
-    """
-    Reset the trajectory's orientations to identity (no rotation).
-    """
     num_poses = len(traj.positions_xyz)
-    # Quaternion format: [w, x, y, z] where identity is [1, 0, 0, 0]
     identity_quats = np.zeros((num_poses, 4))
-    identity_quats[:, 0] = 1  # set w=1
+    identity_quats[:, 0] = 1
     return PoseTrajectory3D(
         positions_xyz=traj.positions_xyz,
         orientations_quat_wxyz=identity_quats,
         timestamps=traj.timestamps
     )
 
-def process_trajectories():
-    """
-    Load, synchronize, align, and reset orientation for both trajectories.
-    Returns the processed (reference, estimated) trajectory pair.
-    """
-    base_path, gt_file, est_file = get_file_paths()
-    # check if the files exist
-    if not os.path.exists(gt_file) or not os.path.exists(est_file):
-        if not os.path.exists(gt_file):
-            print (f"File {gt_file} does not exist (gt_file)")
-        if not os.path.isfile(est_file):
-            print (f"File {est_file} does not exist (est_file)")
+def process_trajectories(gt_file, est_file):
+    if not os.path.exists(gt_file):
+        print(f"File {gt_file} does not exist (gt_file)")
         exit(1)
-        
-    
+    if not os.path.isfile(est_file):
+        print(f"File {est_file} does not exist (est_file)")
+        exit(1)
+
     try:
         traj_ref, traj_est = load_trajectories(gt_file, est_file)
     except Exception as e:
         print(f"Error loading trajectories: {e}")
         print(f"file paths: {gt_file} {est_file}")
         exit(1)
-    
+
     traj_ref_sync, traj_est_sync = synchronize_trajectories(traj_ref, traj_est)
     traj_ref_aligned, traj_est_aligned = align_trajectories(traj_ref_sync, traj_est_sync)
-    
-    # Reset orientations to identity
+
     traj_ref_final = set_identity_orientations(traj_ref_sync)
     traj_est_final = set_identity_orientations(traj_est_aligned)
-    
-    return base_path, (traj_ref_final, traj_est_final)
+
+    return traj_ref_final, traj_est_final
 
 # =============================================================================
 # Metric Computation: APE and RPE
@@ -296,42 +272,28 @@ def create_figure(traj_ref, traj_est, rpe_table, avg_relative_rpe, ate_rmse, sav
 # Main Execution
 # =============================================================================
 if __name__ == '__main__':
-    # Process trajectories
-    base_path, traj_pair = process_trajectories()
-    
-    # Compute metrics
+    args = parse_arguments()
+    os.makedirs(args.output, exist_ok=True)
+
+    traj_pair = process_trajectories(args.gt, args.est)
+
     ape_rmse, ape_stats = compute_ape(traj_pair)
-    
-    # Define deltas for RPE computation
+
     TEST_DELTAS = [1, 2, 5, 10, 20, 50, 100]
     EVALUAITON_DELTAS = [5, 100, 200, 300, 400, 500, 600, 700, 800]
-    
-    TEST_MODE = os.getenv("TEST_MODE", 0)
-    print(f"Test mode: {TEST_MODE}")
-    is_test = (TEST_MODE == "1")
-    print (f"Is test: {is_test}")
-    
-    DELTAS = TEST_DELTAS if is_test else EVALUAITON_DELTAS
-    
-    rpe_results = compute_rpe_set(traj_pair, DELTAS)
-    
-    if len(rpe_results) == 0:
-       print("\033[91mToo big deltas! Try turning on the test mode in `.env` file: TEST_MODE=1\033[0m", file=sys.stderr)
-       sys.exit(1)
-       exit(1)
+    DELTAS = TEST_DELTAS if args.test else EVALUAITON_DELTAS
 
-    
-    # Build RPE summary table and aggregated metrics
+    rpe_results = compute_rpe_set(traj_pair, DELTAS)
+
+    if len(rpe_results) == 0:
+        print("\033[91mToo big deltas! Try turning on test mode with --test\033[0m", file=sys.stderr)
+        sys.exit(1)
+
     rpe_table, avg_relative_rpe = create_rpe_table(rpe_results)
     ate_rmse = compute_ate_rmse(rpe_results)
-    
-    base_path, gt_file, est_file = get_file_paths()
-    # Export results to YAML
-    # get the folder name of the est_file
-    yaml_dir = os.path.dirname(est_file)
-    yaml_filename = os.path.join(yaml_dir, "trajectory_analysis.yaml")
+
+    yaml_filename = os.path.join(args.output, "trajectory_analysis.yaml")
     export_results_to_yaml(yaml_filename, avg_relative_rpe, ate_rmse, rpe_results)
-    
-    # Create and save visualization
-    pdf_filename = os.path.join(yaml_dir, "trajectory_analysis.pdf")
+
+    pdf_filename = os.path.join(args.output, "trajectory_analysis.pdf")
     create_figure(traj_pair[0], traj_pair[1], rpe_table, avg_relative_rpe, ate_rmse, pdf_filename)

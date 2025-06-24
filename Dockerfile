@@ -23,6 +23,7 @@ COPY scripts/trajectory_analysis.py /rosbag_player/scripts/trajectory_analysis.p
 COPY docker/entrypoint_bagplay.sh /rosbag_player/entrypoint_bagplay.sh
 COPY docker/entrypoint_evaluate.sh /rosbag_player/entrypoint_evaluate.sh
 COPY docker/rosbag_info_combined.py /rosbag_player/rosbag_info_combined.py
+COPY docker/entrypoint_record_odometry.sh /rosbag_player/entrypoint_record_odometry.sh
 
 # Ensure scripts are executable
 RUN chmod +x /rosbag_player/entrypoint_bagplay.sh

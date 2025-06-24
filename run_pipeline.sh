@@ -1,5 +1,8 @@
 #!/bin/bash
 
+docker compose down
+rm -rf $OUTPUT_PATH_HOST
+
 # Load environment variables from .env file
 if [ -f .env ]; then
     set -o allexport
@@ -13,23 +16,27 @@ if [ "$DEV_DOCKER" == "true" ]; then
     DOCKER_COMPOSE_CMD="docker compose -f docker-compose.yaml -f docker-compose-dev.yaml"
 fi
 
+# Start odometry logging
+mkdir -p $OUTPUT_PATH_HOST
+echo "Starting odometry logging..."
+$DOCKER_COMPOSE_CMD up record_odometry &
+
 # Start the SLAM container in the background
 echo "Starting SLAM system..."
 $DOCKER_COMPOSE_CMD up run_slam &
 SLAM_PID=$!
+
 
 # Wait a few seconds to ensure SLAM starts properly
 sleep 5
 
 # Start playing the bagfile
 echo "Playing bagfile..."
-EVALUATION_OUTPUT_PATH="$BAGFILES_PATH_HOST/$DATASET_NAME/evaluation_output"
-mkdir -p "$EVALUATION_OUTPUT_PATH"
 $DOCKER_COMPOSE_CMD up play_bag
 
 # After bag playback finishes, stop the SLAM container
 echo "Stopping SLAM system..."
-$DOCKER_COMPOSE_CMD down run_slam
+$DOCKER_COMPOSE_CMD down
 
 # Run trajectory evaluation
 echo "Running trajectory evaluation..."
@@ -45,3 +52,8 @@ else
 fi
 
 exit 0
+
+docker compose down
+echo "Pipeline completed successfully."
+echo "All containers stopped and cleaned up."
+echo "You can find the output files in: $OUTPUT_PATH_HOST"

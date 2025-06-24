@@ -1,4 +1,18 @@
 services:
+  record_odometry:
+    image: ghcr.io/comrob/slam-bench:latest
+    init: true
+    container_name: record_odometry
+    user: "1000:1000"  # Run container as host user
+    environment:
+      - ROS_HOME=/tmp/.ros
+      - OUTPUT_FILE_NAME=${OUTPUT_FILE_NAME}
+      - OUTPUT_PATH_HOST=${OUTPUT_PATH_HOST}
+    volumes:
+      - ${OUTPUT_PATH_HOST}:/trajectory_files
+    network_mode: "host"
+    entrypoint: ["/rosbag_player/entrypoint_record_odometry.sh"]
+
   play_bag:
     image: ghcr.io/comrob/slam-bench:latest
     init: true
@@ -6,15 +20,12 @@ services:
     user: "1000:1000"  # Run container as host user
     environment:
       - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
-      - DATASET_NAME=${DATASET_NAME}
       - BAGFILE_NAME=${BAGFILE_NAME}
-      - ROS_HOME=/tmp/.ros
       - ROSBAG_PLAY_RATE=${ROSBAG_PLAY_RATE}
-      - SENSOR_TRACKS=${SENSOR_TRACKS}
-      - OUTPUT_FILE_NAME=${OUTPUT_FILE_NAME}
+      - TOPICS_FILE=${TOPICS_FILE}
+      - ROS_HOME=/tmp/.ros
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
-      - ${OUTPUT_PATH_HOST}:/trajectory_files
     network_mode: "host"
   
   evaluate_trajectory:
@@ -24,12 +35,10 @@ services:
     user: "1000:1000"  # Run container as host user
     environment:
       - TEST_MODE=${TEST_MODE}
-      - DATASET_NAME=${DATASET_NAME}
-      - REFERENCE_TRAJECTORY_FILE=${REFERENCE_TRAJECTORY_FILE}
-      - ESTIMATED_TRAJECTORY_FILE=${ESTIMATED_TRAJECTORY_FILE}
     volumes:
-      - ${BAGFILES_PATH_HOST}:/rosbag_files
-      - ${OUTPUT_PATH_HOST}:/trajectory_files
+      - ${REFERENCE_TRAJECTORY_FILE_HOST:-/reference_trajectory.txt}:/reference_trajectory.txt
+      - ${ESTIMATED_TRAJECTORY_FILE_HOST:-/estimated_trajectory.txt}:/estimated_trajectory.txt
+      - ${OUTPUT_PATH_HOST:-/evaluation_output}:/evaluation_output
     entrypoint: ["/rosbag_player/entrypoint_evaluate.sh"]
   
   run_slam_nvidia:
