@@ -20,7 +20,7 @@ services:
     user: "1000:1000"  # Run container as host user
     environment:
       - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
-      - BAGFILE_NAME=${BAGFILE_NAME}
+      - BAGFILE_NAME=${BAGFILE_NAME:-sensors}
       - ROSBAG_PLAY_RATE=${ROSBAG_PLAY_RATE}
       - TOPICS_FILE=${TOPICS_FILE}
       - ROS_HOME=/tmp/.ros
