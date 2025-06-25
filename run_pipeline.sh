@@ -1,14 +1,19 @@
 #!/bin/bash
 
-docker compose down
-rm -rf $OUTPUT_PATH_HOST
-
 # Load environment variables from .env file
 if [ -f .env ]; then
     set -o allexport
     source .env
     set +o allexport
 fi
+
+docker compose down
+echo "Stopping all running containers..."
+rm -rf $OUTPUT_PATH_HOST
+echo "Removing output directory: $OUTPUT_PATH_HOST"
+ls $OUTPUT_PATH_HOST
+
+sleep 2
 
 # Determine docker-compose command based on DEV_DOCKER
 DOCKER_COMPOSE_CMD="docker compose"
@@ -20,6 +25,8 @@ fi
 mkdir -p $OUTPUT_PATH_HOST
 echo "Starting odometry logging..."
 $DOCKER_COMPOSE_CMD up record_odometry &
+
+sleep 5  # Wait for the odometry logging to start
 
 # Start the SLAM container in the background
 echo "Starting SLAM system..."
