@@ -1,0 +1,5 @@
+# This is an example of an override parameters file for SLAM.
+
+# liorf:
+#   pointCloudTopic: "/os1/points"
+#   imuTopic: "/os1/points"

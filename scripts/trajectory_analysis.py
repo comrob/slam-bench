@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from evo.tools import file_interface
-from evo.core import sync, metrics, trajectory
+from evo.core import sync, metrics
 from evo.core.trajectory import PoseTrajectory3D
 
 # =============================================================================

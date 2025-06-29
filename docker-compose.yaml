@@ -65,6 +65,7 @@ services:
     network_mode: "host"
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${SLAM_CONFIG_OVERRIDE_FILE:-/dev/null}:/config/overrides.yaml
     environment:
       - DISPLAY=${DISPLAY}
   
