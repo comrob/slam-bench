@@ -11,4 +11,4 @@ done
 
 echo "Starting odometry logger..."
 
-python3 /rosbag_player/scripts/odometry_logger.py
+python3 scripts/odometry_logger.py

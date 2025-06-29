@@ -11,7 +11,7 @@ services:
     volumes:
       - ${OUTPUT_PATH_HOST}:/trajectory_files
     network_mode: "host"
-    entrypoint: ["/rosbag_player/entrypoint_record_odometry.sh"]
+    entrypoint: ["/app/entrypoints/entrypoint_record_odometry.sh"]
 
   play_bag:
     image: ghcr.io/comrob/slam-bench:latest
@@ -27,6 +27,7 @@ services:
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
     network_mode: "host"
+    entrypoint: ["/app/entrypoints/entrypoint_play_bag.sh"]
   
   evaluate_trajectory:
     init: true
@@ -39,7 +40,7 @@ services:
       - ${REFERENCE_TRAJECTORY_FILE_HOST:-/reference_trajectory.txt}:/reference_trajectory.txt
       - ${ESTIMATED_TRAJECTORY_FILE_HOST:-/estimated_trajectory.txt}:/estimated_trajectory.txt
       - ${OUTPUT_PATH_HOST:-/evaluation_output}:/evaluation_output
-    entrypoint: ["/rosbag_player/entrypoint_evaluate.sh"]
+    entrypoint: ["/app/entrypoints/entrypoint_evaluate.sh"]
   
   run_slam_nvidia:
     image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}

@@ -34,7 +34,7 @@ elif [ -d "$BAG_PATH" ]; then
     # Use a glob pattern to play all bag files
     BAG_FILES_TO_PLAY="$BAG_PATH/*.bag"
     echo "Bag files information:"
-    python3 /rosbag_player/rosbag_info_combined.py $BAG_FILES_TO_PLAY
+    python3 scripts/rosbag_info_combined.py $BAG_FILES_TO_PLAY
 else
     echo "Error: Path not found (neither a file nor a directory): $BAG_PATH"
     exit 1
