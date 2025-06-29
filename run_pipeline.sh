@@ -1,66 +1,116 @@
 #!/bin/bash
 
-# Load environment variables from .env file
-if [ -f .env ]; then
-    set -o allexport
-    source .env
-    set +o allexport
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error when substituting.
+set -u
+# a pipeline's return status is the value of the last command to exit with a non-zero status,
+# or zero if no command exited with a non-zero status
+set -o pipefail
+
+# --- Color Definitions ---
+# Provides clear, color-coded feedback to the user.
+readonly C_RESET='\033[0m'
+readonly C_RED='\033[0;31m'
+readonly C_GREEN='\033[0;32m'
+readonly C_YELLOW='\033[0;33m'
+readonly C_BLUE='\033[0;34m'
+
+# --- Helper Functions for Logging ---
+info() { echo -e "${C_BLUE}INFO: $1${C_RESET}"; }
+success() { echo -e "${C_GREEN}SUCCESS: $1${C_RESET}"; }
+warn() { echo -e "${C_YELLOW}WARN: $1${C_RESET}"; }
+error() { echo -e "${C_RED}ERROR: $1${C_RESET}" >&2; }
+
+# --- Main Logic ---
+
+# Function to be called on script exit or interruption (Ctrl+C)
+cleanup() {
+    info "Running cleanup... Stopping all related containers."
+    # Use the determined DOCKER_COMPOSE_CMD to ensure consistency
+    ${DOCKER_COMPOSE_CMD:-docker compose} down -v --remove-orphans
+    success "Cleanup complete."
+}
+
+# Set a trap to run the cleanup function on EXIT signal
+trap cleanup EXIT
+
+# 1. --- Pre-flight Checks and Setup ---
+info "Starting SLAM evaluation pipeline..."
+
+# Check for .env file before proceeding
+if [ ! -f .env ]; then
+    error "Configuration file .env not found."
+    if [ -f .env.example ]; then
+        echo "Please create it by copying the example:"
+        echo "  cp .env.example .env"
+        echo "Then, modify .env to match your environment."
+    fi
+    exit 1
 fi
 
-docker compose down
-echo "Stopping all running containers..."
-rm -rf $OUTPUT_PATH_HOST
-echo "Removing output directory: $OUTPUT_PATH_HOST"
-ls $OUTPUT_PATH_HOST
+# Load environment variables from .env
+set -o allexport
+source .env
+set +o allexport
 
-sleep 2
-
-# Determine docker-compose command based on DEV_DOCKER
+# Determine which docker-compose files to use
 DOCKER_COMPOSE_CMD="docker compose"
-if [ "$DEV_DOCKER" == "true" ]; then
+if [[ "${DEV_DOCKER:-false}" == "true" ]]; then
+    info "Development mode is enabled. Using local Dockerfile."
     DOCKER_COMPOSE_CMD="docker compose -f docker-compose.yaml -f docker-compose-dev.yaml"
 fi
 
-# Start odometry logging
-mkdir -p $OUTPUT_PATH_HOST
-echo "Starting odometry logging..."
-$DOCKER_COMPOSE_CMD up record_odometry &
+# 2. --- Initial Cleanup ---
+info "Performing initial cleanup..."
+# Stop any containers from a previous run
+$DOCKER_COMPOSE_CMD down -v --remove-orphans
 
-sleep 5  # Wait for the odometry logging to start
-
-# Start the SLAM container in the background
-echo "Starting SLAM system..."
-$DOCKER_COMPOSE_CMD up run_slam &
-SLAM_PID=$!
-
-
-# Wait a few seconds to ensure SLAM starts properly
-sleep 5
-
-# Start playing the bagfile
-echo "Playing bagfile..."
-$DOCKER_COMPOSE_CMD up play_bag
-
-# After bag playback finishes, stop the SLAM container
-echo "Stopping SLAM system..."
-$DOCKER_COMPOSE_CMD down
-
-# Run trajectory evaluation
-echo "Running trajectory evaluation..."
-$DOCKER_COMPOSE_CMD up evaluate_trajectory
-
-# Open the evaluation report
-echo "Opening evaluation report..."
-REPORT_PATH="$BAGFILES_PATH_HOST/$DATASET_NAME/evaluation_output/trajectory_analysis.pdf"
-if [ -f "$REPORT_PATH" ]; then
-    xdg-open "$REPORT_PATH" 2>/dev/null || open "$REPORT_PATH" 2>/dev/null || echo "Report available at: $REPORT_PATH"
+# Safety check before removing the output directory
+if [ -z "$OUTPUT_PATH_HOST" ]; then
+    error "OUTPUT_PATH_HOST is not set in .env. Aborting to prevent accidental deletion."
+    exit 1
+fi
+info "Removing previous output directory: $OUTPUT_PATH_HOST"
+# Only remove if the directory actually exists
+if [ -d "$OUTPUT_PATH_HOST" ]; then
+    rm -rf "$OUTPUT_PATH_HOST"
+    success "Previous output directory removed."
 else
-    echo "Evaluation report not found at: $REPORT_PATH"
+    warn "Previous output directory not found. Nothing to remove."
+fi
+# Create the output directory for the new run
+mkdir -p "$OUTPUT_PATH_HOST"
+
+
+# 3. --- Run Main SLAM and Data Playback Stage ---
+info "Starting SLAM services in the background..."
+# Start SLAM and odometry recorder in detached mode
+$DOCKER_COMPOSE_CMD up -d run_slam record_odometry
+
+info "Starting bagfile playback. This will block until finished..."
+$DOCKER_COMPOSE_CMD up play_bag
+success "Bagfile playback complete."
+
+# At this point, play_bag has finished, so we can stop the SLAM system.
+# The `trap` will handle the final `down` command, but we can be explicit here if needed.
+# For simplicity, we let the trap handle the final cleanup.
+
+# 4. --- Run Evaluation Stage ---
+info "Running trajectory evaluation..."
+$DOCKER_COMPOSE_CMD up evaluate_trajectory
+success "Evaluation complete."
+
+# 5. --- Final Report ---
+# Construct the report path safely from OUTPUT_PATH_HOST
+REPORT_PATH="$OUTPUT_PATH_HOST/trajectory_analysis.pdf"
+info "Attempting to open evaluation report..."
+if [ -f "$REPORT_PATH" ]; then
+    # Try to open the report in a cross-platform way
+    xdg-open "$REPORT_PATH" 2>/dev/null || open "$REPORT_PATH" 2>/dev/null || warn "Could not open report automatically."
+    success "Report is available at: $REPORT_PATH"
+else
+    error "Evaluation report not found at: $REPORT_PATH"
 fi
 
-exit 0
-
-docker compose down
-echo "Pipeline completed successfully."
-echo "All containers stopped and cleaned up."
-echo "You can find the output files in: $OUTPUT_PATH_HOST"
+# The script will exit here, and the 'trap' will run the cleanup function.

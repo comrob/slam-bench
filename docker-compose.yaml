@@ -1,9 +1,24 @@
 services:
+  roscore:
+    image: ghcr.io/comrob/slam-bench:latest
+    container_name: roscore
+    network_mode: "host"
+    command: roscore
+    healthcheck:
+      # This command succeeds only when roscore is running and responsive.
+      test: ["CMD", "rostopic", "list"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
   record_odometry:
     image: ghcr.io/comrob/slam-bench:latest
     init: true
     container_name: record_odometry
     user: "1000:1000"  # Run container as host user
+    depends_on:
+      roscore:
+        condition: service_healthy
     environment:
       - ROS_HOME=/tmp/.ros
       - OUTPUT_FILE_NAME=${OUTPUT_FILE_NAME}
@@ -18,6 +33,9 @@ services:
     init: true
     container_name: play_bag
     user: "1000:1000"  # Run container as host user
+    depends_on:
+      roscore:
+        condition: service_healthy
     environment:
       - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
       - BAGFILE_NAME=${BAGFILE_NAME:-sensors}
@@ -46,6 +64,9 @@ services:
     image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}
     container_name: run_slam_nvidia
     network_mode: "host"
+    depends_on:
+      roscore:
+        condition: service_healthy
     deploy:
       resources:
         reservations:
@@ -64,6 +85,9 @@ services:
     image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}
     container_name: run_slam
     network_mode: "host"
+    depends_on:
+      roscore:
+        condition: service_healthy
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${SLAM_CONFIG_OVERRIDE_FILE:-/dev/null}:/config/overrides.yaml

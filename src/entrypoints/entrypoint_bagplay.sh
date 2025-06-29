@@ -1,13 +1,9 @@
 #!/bin/bash
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+# Source ROS environment. roscore is guaranteed to be running by docker-compose.
 source /opt/ros/noetic/setup.bash
-
-echo "Starting ROS core..."
-roscore &
-
-until rostopic list > /dev/null 2>&1; do
-  echo "Waiting for roscore..."
-  sleep 1
-done
 
 export BAG_PATH="/rosbag_files/$BAGFILE_NAME"
 echo "Looking for bag(s) at: $BAG_PATH ($BAGFILES_PATH_HOST/$BAGFILE_NAME on host)"

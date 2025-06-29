@@ -1,6 +1,4 @@
 #!/bin/bash
-source /opt/ros/noetic/setup.bash
-
 echo "Starting trajectory analysis..."
 
 # The shell finds 'scripts/trajectory_analysis.py' because we are in '/app'.

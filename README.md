@@ -1,166 +1,206 @@
-# SLAM Benchmark Competition
+# SLAM Pipeline and Evaluation Framework
 
-This project facilitates the evaluation of dockerized SLAM systems for the CRL competition. It provides an automated pipeline to run and evaluate SLAM systems using ROS1-based Docker containers.
+[](https://opensource.org/licenses/MIT)
 
----
+This repository provides a robust and automated framework for running, benchmarking, and evaluating containerized SLAM (Simultaneous Localization and Mapping) systems. It is designed for streamlined use in robotics competitions and research, leveraging Docker and Docker Compose for portability and reproducibility.
 
-## ⚡ TL;DR - Quick Usage Guide
+### Features
 
-1. **Ensure prerequisites are installed:** [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
-2. **Download the datasets** (See Setting Up the Dataset Section)
-3. **Modify the `.env` file** to set dataset paths, rosbag playing parameters, and the SLAM system to be used.
-4. **Run the full SLAM pipeline:**
+  * **Automated Pipeline:** Execute the entire workflow—running SLAM, playing data, and evaluating results—with a single command.
+  * **Containerized & Reproducible:** Runs any Docker-based SLAM system, ensuring consistent environments.
+  * **Flexible Configuration:** Easily configure dataset paths, playback parameters, and the target SLAM image via a central `.env` file.
+  * **Development Mode:** A dedicated development workflow allows you to build and test local code changes.
+  * **Modular Structure:** Cleanly organized source code, entrypoints, and configuration make the framework easy to understand and extend.
 
-```bash
-./run_pipeline.sh
-```
-
-✔ This will:
-- Start the SLAM system in a Docker container (liorf-crl by default).
-- Play the selected bagfile.
-- Stop the SLAM system after playback.
-- Evaluate the estimated trajectory.
-- Open the evaluation report automatically.
-
-4. **To visualize the SLAM output in RViz**, run the following in your terminal:
-
-```bash
-xhost +
-```
-
----
+-----
 
 ## 📦 Prerequisites
 
-Ensure the following dependencies are installed:
+Ensure you have the following software installed on your system:
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+  * [Docker Engine](https://docs.docker.com/get-docker/)
+  * [Docker Compose](https://docs.docker.com/compose/install/)
 
----
+-----
 
-## Selecting your SLAM system
+## 🚀 Quick Start Guide
 
-In the `.env` file, specify the variable:
+1.  **Clone the Repository:**
+
+    ```bash
+    git clone https://github.com/comrob/slam-bench -d slam_competition
+    cd slam_competition
+    ```
+
+2.  **Configure Your Environment:**
+
+      * Create a new `.env` file (you can copy `.env.example`).
+      * Modify `.env` to set the paths to your datasets and specify the Docker image for your SLAM system. See the **Configuration** section below for details.
+
+3.  **Run the Pipeline:**
+
+    ```bash
+    ./run_pipeline.sh
+    ```
+
+    This script will automatically:
+
+    1.  Start your specified SLAM system and the odometry recorder.
+    2.  Play the configured ROS bag file(s).
+    3.  Stop all containers after playback.
+    4.  Evaluate the final trajectory against the reference.
+    5.  Attempt to open the generated PDF report (`trajectory_analysis.pdf`).
+
+-----
+
+## ⚙️ Configuration (`.env` file)
+
+All pipeline parameters are controlled from the `.env` file. Below is a description of the key variables.
+
+| Variable                         | Description                                                                                                                                                             | Example Value                                              |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `BAGFILES_PATH_HOST`             | The **absolute path** to the specific dataset directory you want to run.                                                                                                  | `$HOME/bagfiles_competition/shellby-0225-train-lab`        |
+| `BAGFILE_NAME`                   | The name of a single `.bag` file or a **subdirectory** within `BAGFILES_PATH_HOST` that contains multiple `.bag` files.                                                     | `bags`                                                     |
+| `SLAM_IMAGE`                     | The name of the Docker image for the SLAM system you want to evaluate. If empty, falls back to `CRL_SLAM_IMAGE`.                                                         | `my-slam-algo:latest`                                      |
+| `CRL_SLAM_IMAGE`                 | The default SLAM image to use as a fallback.                                                                                                                              | `ghcr.io/comrob/liorf-crl:latest`                          |
+| `REFERENCE_TRAJECTORY_FILE_HOST` | The **absolute path** to the ground truth trajectory file.                                                                                                                | `$BAGFILES_PATH_HOST/reference/reference.txt`              |
+| `ROSBAG_PLAY_RATE`               | The playback rate for the `rosbag play` command.                                                                                                                          | `5.0`                                                      |
+| `TOPICS_FILE`                    | (Optional) A path relative to `BAGFILES_PATH_HOST` pointing to a file with a newline-separated list of ROS topics to play.                                                 | `tracks/passive.txt`                                       |
+| `DEV_DOCKER`                     | Set to `true` to use the locally built `slam-bench:latest` image. **Crucial for the development of *this evaluation repository*, not the SLAM system itself.** | `true`                                                     |
+| `SLAM_CONFIG_OVERRIDE_FILE`      | (Optional) A host-side path to a SLAM configuration file that will be mounted into the SLAM container at `/config/overrides.yaml`.                                        | `./config/slam/override_config.yaml.example`               |
+
+### Expected Dataset Structure for Pipeline
+
+To run the automated `run_pipeline.sh` with a minimal number of variables, the framework expects your dataset to be organized as follows.
+
 ```
-SLAM_IMAGE=your-slam-image
-```
-If not specified, the default liorf-crl would be used.
-
-## 🚀 Setting Up the Dataset
-
-You may download the following training data:
-- [All](https://comrob-ds.fel.cvut.cz:9001/api/v1/buckets/cb-slam/objects/download?prefix=data/train/) training datasets.
-- Separate datasets:
-  - [shellby-0225-train-lab](https://comrob-ds.fel.cvut.cz:9001/api/v1/buckets/cb-slam/objects/download?prefix=data/train/shellby-0225-train-lab/) ( 5.5 GB, about 3.3 GB for download)
-  - [shellby-0225-train-loop1](https://comrob-ds.fel.cvut.cz:9001/api/v1/buckets/cb-slam/objects/download?prefix=data/train/shellby-0225-train-loop1/) ( 47 GB, about 24 GB for download)
-  - [extrinsics](https://comrob-ds.fel.cvut.cz:9001/api/v1/buckets/cb-slam/objects/download?prefix=data/train/extrinsics/) (16 kB)
-
-
-Modify the `.env` file to define:
-
-- **`BAGFILES_PATH_HOST`**: Path to the directory containing the bagfile dataset on the host machine.
-- **`DATASET_NAME`**: Name of the dataset folder inside `BAGFILES_PATH_HOST`.
-- **`SENSOR_MODE`**: Controls which sensors are played from the bagfile. Options:
-  - `passive`: Plays only passive sensors (e.g., cameras, IMUs, plant sensors).
-  - Any other value (or unset): Plays all sensors, including LiDAR.
-
-To simplify access, you can create a symbolic link for easier dataset management:
-```bash
-ln -s <your_bagfiles_path> $HOME/bagfiles_competition
-```
-
-The default configuration assumes that you have downloaded and unpacked [shellby-0225-train-lab](https://comrob-ds.fel.cvut.cz:9001/api/v1/buckets/cb-slam/objects/download?prefix=data/train/shellby-0225-train-lab/) to the `~/bagfiles_competition` folder
-
-
-
-### Dataset Structure
-
-Ensure the dataset follows this structure:
-
-```
-|-- $BAGFILES_PATH_HOST
-    |-- $DATASET_NAME
-        |-- $DATASET_NAME.bag  # Bagfile to be evaluated
-        |-- reference
-            |-- $DATASET_NAME.txt  # Ground truth trajectory
-```
-
----
-
-## 🏃 Running the Full SLAM Pipeline
-
-Execute the entire pipeline in a single command:
-
-```bash
-./run_pipeline.sh
-```
-
-### What Happens When You Run This?
-
-- The SLAM container starts.
-- The bagfile plays according to `SENSOR_MODE`.
-- The SLAM container is automatically stopped after playback.
-- The estimated trajectory is evaluated.
-- The evaluation report (`trajectory_analysis.pdf`) is opened.
-
-To manually start components, use:
-
-```bash
-docker compose up run_slam  # Start SLAM
+$BAGFILES_PATH_HOST/          # e.g., /home/user/bagfiles_competition/shellby-0225-train-lab
+├── <bags_folder>/            # Can be any name, specified in BAGFILE_NAME
+│   └── *.bag                 # One or more .bag files
+├── reference/
+│   └── reference.txt         # The ground truth trajectory
+└── tracks/
+    └── passive.txt           # Optional topics file
 ```
 
-```bash
-docker compose up play_bag  # Play dataset
-```
+**Note:** This structure is recommended for the automated pipeline. When running services manually, you are free to use any layout as long as you provide the correct, full paths in the `.env` file.
 
-```bash
-docker compose up evaluate_trajectory  # Evaluate trajectory
-```
+-----
 
-## Submitting your SLAM solution.
+## Workflows and Usage
 
-After testing your docker image, we encourage you to submit to the [slam benchmark competition](https://comrob-ds.fel.cvut.cz:555/competitions/18/).
-For that, following the sumbission instructions, creating a zip file with the docker image and data playback parameters.
-- Generate the .tar File from your docker image.
-To create the Docker image archive, use the following command:
-```
-docker save -o my-image.tar my-image-name
-```
-- (Optional) Create a yaml file with the instructions. 
+### Development Workflow (for this Repository)
 
-Example `description.yaml` Content:
+To test changes made to the Python scripts or entrypoints in this evaluation framework:
 
-(All fields are optional)
-```
-SENSOR_TRACKS: all                 # Options: all or passive (default: all)
-ROSBAG_PLAY_RATE: 5.0             # Default: 5.0 (minimum: 1.0)
-```
-- Create a `.zip` archive with both `.tar` and `.yaml` file.
+1.  **Modify the Code** in the `src/` directory.
+2.  **Build the local Docker image** using the provided script. This packages your changes into the `slam-bench:latest` image.
+    ```bash
+    ./docker/build.sh
+    ```
+3.  **Enable Development Mode** in your `.env` file. This tells Docker Compose to use your locally built image.
+    ```
+    DEV_DOCKER=true
+    ```
+4.  **Run the pipeline** to test your changes in a live environment.
+    ```bash
+    ./run_pipeline.sh
+    ```
 
-**Important**: Make sure both files are located at the same directory level inside the zip.
+### Manual Control
 
-- The resulting `.zip` file is ready for upload.
+You can run individual components of the pipeline for fine-grained control and debugging. The key is to run the SLAM system and odometry recorder in the background first.
 
-###
+1.  **Start Background Services:** Launch your SLAM system and the odometry recorder. The `-d` flag runs them in detached mode.
 
----
+    ```bash
+    docker compose up -d run_slam record_odometry
+    ```
+
+2.  **Play the Dataset:** Run the `play_bag` service in the foreground. This will stream data to your SLAM system. The command will exit once playback is complete.
+
+    ```bash
+    docker compose up play_bag
+    ```
+
+3.  **Evaluate the Trajectory:** **After the bag file has finished playing**, run the evaluation service. This will compare the `estimated_trajectory.txt` generated during the run against the reference.
+
+    ```bash
+    docker compose up evaluate_trajectory
+    ```
+
+4.  **Clean Up:** Stop and remove all pipeline containers.
+
+    ```bash
+    docker compose down
+    ```
+
+### Visualization with RViz
+
+If your SLAM container publishes visualization markers, you can view them in RViz on your host.
+
+1.  Allow local connections to your X server (run once per session):
+    ```bash
+    xhost +
+    ```
+2.  Ensure the `DISPLAY` environment variable is correctly set in your shell.
+3.  Run the pipeline. The SLAM container will now connect to your host's display.
+
+-----
+
+## 🏆 Competition Submission
+
+To submit your solution, package your Docker image and an optional description file.
+
+1.  **Save your Docker Image:**
+    Archive your final SLAM image into a `.tar` file.
+
+    ```bash
+    docker save -o my-slam-image.tar your-slam-image:latest
+    ```
+
+2.  **(Optional) Create a `description.yaml`:**
+    This file specifies playback parameters. **Check the official competition rules for the required fields and keys.**
+
+    ```yaml
+    # Example description.yaml
+    ROSBAG_PLAY_RATE: 5.0
+    # Other parameters as required by the competition...
+    ```
+
+3.  **Create the ZIP Archive:**
+    Create a `.zip` file containing the `.tar` image archive and the optional `.yaml` file.
+
+    ```bash
+    zip submission.zip my-slam-image.tar description.yaml
+    ```
+
+    This `submission.zip` file is ready for upload.
+
+-----
 
 ## 🛠 Troubleshooting
 
-If you encounter any issues, refer to the common problems and solutions below.
+  * **Evaluation fails or the score is zero:**
 
-- **Odometry logger is not writing data**
-  - Ensure `/estimated_odom` is correctly published by your SLAM system.
-- **Sensors not playing as expected**
-  - Check `SENSOR_MODE` in the `.env` file. Ensure it is correctly set.
-  - If `passive` is set, LiDAR topics will not be played.
-- **RViz is not displaying SLAM output**
-  - Run `xhost +` in your terminal before launching the pipeline.
+      * Check the logs of the `record_odometry` container to see if it's receiving messages on the odometry topic.
+      * Verify that your SLAM system is publishing trajectory data correctly.
+      * Ensure `$OUTPUT_PATH_HOST/estimated_trajectory.txt` is being created and is not empty.
 
----
+  * **Local code changes have no effect:**
+
+      * Ensure you have run `./docker/build.sh` after making changes to the code.
+      * Verify that `DEV_DOCKER=true` is set in your `.env` file.
+
+  * **Incorrect ROS topics are being played:**
+
+      * Check the `TOPICS_FILE` variable in `.env`. If it's set, ensure the specified file exists at the correct path and contains the desired topic names, one per line.
+
+  * **RViz is not displaying anything:**
+
+      * Make sure you have run `xhost +` on your host machine *before* starting the pipeline.
+      * Confirm your `DISPLAY` environment variable is correctly set.
 
 ## 📜 License
 
-This project is open-source. Feel free to modify and extend it! 🚀
-
+This project is licensed under the MIT License. See the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.

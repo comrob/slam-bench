@@ -1,4 +1,8 @@
 services:
+  roscore:
+    build: .
+    image: slam-bench:latest
+
   play_bag:
     build: .
     image: slam-bench:latest
