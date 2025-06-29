@@ -18,12 +18,12 @@ RUN pip3 install evo --upgrade
 WORKDIR /rosbag_player
 
 # Copy scripts into the container
-COPY scripts/odometry_logger.py /rosbag_player/scripts/odometry_logger.py
-COPY scripts/trajectory_analysis.py /rosbag_player/scripts/trajectory_analysis.py
-COPY docker/entrypoint_bagplay.sh /rosbag_player/entrypoint_bagplay.sh
-COPY docker/entrypoint_evaluate.sh /rosbag_player/entrypoint_evaluate.sh
-COPY docker/rosbag_info_combined.py /rosbag_player/rosbag_info_combined.py
-COPY docker/entrypoint_record_odometry.sh /rosbag_player/entrypoint_record_odometry.sh
+COPY src/scripts/odometry_logger.py /rosbag_player/scripts/odometry_logger.py
+COPY src/scripts/trajectory_analysis.py /rosbag_player/scripts/trajectory_analysis.py
+COPY src/scripts/rosbag_info_combined.py /rosbag_player/rosbag_info_combined.py
+COPY src/entrypoints/entrypoint_bagplay.sh /rosbag_player/entrypoint_bagplay.sh
+COPY src/entrypoints/entrypoint_evaluate.sh /rosbag_player/entrypoint_evaluate.sh
+COPY src/entrypoints/entrypoint_record_odometry.sh /rosbag_player/entrypoint_record_odometry.sh
 
 # Ensure scripts are executable
 RUN chmod +x /rosbag_player/entrypoint_bagplay.sh

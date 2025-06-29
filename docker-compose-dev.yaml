@@ -6,3 +6,8 @@ services:
   evaluate_trajectory:
     build: .
     image: slam-bench:latest
+  
+  record_odometry:
+    build: .
+    image: slam-bench:latest
+  
