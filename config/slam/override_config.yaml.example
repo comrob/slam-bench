@@ -1,5 +1,12 @@
 # This is an example of an override parameters file for SLAM.
 
 # liorf:
-#   pointCloudTopic: "/os1/points"
-#   imuTopic: "/os1/points"
+#   pointCloudTopic: "/ouster/points"
+#   imuTopic: "/ouster/imu"
+
+#   # liorf-crl is built to work with os_lidar frame, 
+#   # so these parameters have to be changed
+#   lidarFrame: "os_sensor"
+#   extrinsicRot: [1, 0, 0,
+#                  0, 1, 0,
+#                  0, 0, 1]

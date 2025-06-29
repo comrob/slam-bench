@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip3 install numpy==1.21.0 pandas==1.3.0 matplotlib==3.4.2 evo --upgrade
+RUN pip3 install numpy==1.21.0 pandas==1.3.0 matplotlib==3.4.2
+RUN pip3 install evo --upgrade
 
 # Set up a standard working directory
 WORKDIR /app
@@ -21,5 +22,5 @@ COPY src/ .
 # Ensure all entrypoints are executable with a single command
 RUN chmod +x entrypoints/*.sh
 
-# Set entrypoint using the new, predictable path
-ENTRYPOINT ["/app/entrypoints/entrypoint_bagplay.sh"]
+# Set our new script as the default entrypoint for the image
+ENTRYPOINT ["/app/entrypoints/ros_entrypoint.sh"]

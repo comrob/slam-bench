@@ -67,7 +67,7 @@ All pipeline parameters are controlled from the `.env` file. Below is a descript
 | `ROSBAG_PLAY_RATE`               | The playback rate for the `rosbag play` command.                                                                                                                          | `5.0`                                                      |
 | `TOPICS_FILE`                    | (Optional) A path relative to `BAGFILES_PATH_HOST` pointing to a file with a newline-separated list of ROS topics to play.                                                 | `tracks/passive.txt`                                       |
 | `DEV_DOCKER`                     | Set to `true` to use the locally built `slam-bench:latest` image. **Crucial for the development of *this evaluation repository*, not the SLAM system itself.** | `true`                                                     |
-| `SLAM_CONFIG_OVERRIDE_FILE`      | (Optional) A host-side path to a SLAM configuration file that will be mounted into the SLAM container at `/config/overrides.yaml`.                                        | `./config/slam/override_config.yaml.example`               |
+| `SLAM_CONFIG_OVERRIDE_FILE`      | (Optional) A host-side path to a SLAM configuration file that will be mounted into the SLAM container at `/config/override.yaml`.                                        | `./config/slam/override_config.yaml.example`               |
 
 ### Expected Dataset Structure for Pipeline
 

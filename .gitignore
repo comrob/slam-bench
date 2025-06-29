@@ -1,2 +1,2 @@
-slam_config/override_config.yaml
+config/slam/override_config.yaml
 .env

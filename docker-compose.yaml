@@ -6,7 +6,7 @@ services:
     command: roscore
     healthcheck:
       # This command succeeds only when roscore is running and responsive.
-      test: ["CMD", "rostopic", "list"]
+      test: ["CMD", "bash", "-c", "source /app/entrypoints/ros_entrypoint.sh && rostopic list"]
       interval: 1s
       timeout: 3s
       retries: 30
@@ -76,6 +76,7 @@ services:
               capabilities: [gpu]
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${SLAM_CONFIG_OVERRIDE_FILE:-/dev/null}:/config/override.yaml
     environment:
       - DISPLAY=${DISPLAY}
       - NVIDIA_VISIBLE_DEVICES=all
@@ -90,7 +91,7 @@ services:
         condition: service_healthy
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - ${SLAM_CONFIG_OVERRIDE_FILE:-/dev/null}:/config/overrides.yaml
+      - ${SLAM_CONFIG_OVERRIDE_FILE:-./config/slam/override_config.yaml.example}:/config/override.yaml
     environment:
       - DISPLAY=${DISPLAY}
   

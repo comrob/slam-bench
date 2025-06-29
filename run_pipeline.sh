@@ -83,10 +83,27 @@ fi
 mkdir -p "$OUTPUT_PATH_HOST"
 
 
-# 3. --- Run Main SLAM and Data Playback Stage ---
 info "Starting SLAM services in the background..."
 # Start SLAM and odometry recorder in detached mode
 $DOCKER_COMPOSE_CMD up -d run_slam record_odometry
+
+info "Verifying that background services are running..."
+sleep 5 # Give services a moment to start or fail. Adjust if your SLAM system takes longer to initialize.
+
+# Specifically check the 'run_slam' service, as it's the most likely to fail.
+# We get a list of services with status "running" and check if run_slam is in it.
+RUN_SLAM_STATUS=$($DOCKER_COMPOSE_CMD ps --services --filter "status=running" | grep -w "run_slam" || true)
+
+if [ -z "$RUN_SLAM_STATUS" ]; then
+    error "'run_slam' service failed to start or exited unexpectedly."
+    info "Showing recent logs for 'run_slam' to help diagnose:"
+    # Show the last 20 lines of the log to help the user.
+    $DOCKER_COMPOSE_CMD logs --tail=20 run_slam
+    # The script will exit here, and the 'trap' will run the cleanup function.
+    exit 1
+else
+    success "'run_slam' service started successfully."
+fi
 
 info "Starting bagfile playback. This will block until finished..."
 $DOCKER_COMPOSE_CMD up play_bag
