@@ -1,11 +1,19 @@
+# This file is configured for a secure, isolated ROS network.
+
 services:
   roscore:
     image: ghcr.io/comrob/slam-bench:latest
     container_name: roscore
-    network_mode: "host"
+    hostname: roscore
+    networks:
+      - ros-net
     command: roscore
+    ports:
+      - "11311:11311" # Expose master port for host-based debugging tools
+    environment:
+      # The roscore advertises its own hostname.
+      ROS_HOSTNAME: roscore
     healthcheck:
-      # This command succeeds only when roscore is running and responsive.
       test: ["CMD", "bash", "-c", "source /app/entrypoints/ros_entrypoint.sh && rostopic list"]
       interval: 1s
       timeout: 3s
@@ -15,58 +23,67 @@ services:
     image: ghcr.io/comrob/slam-bench:latest
     init: true
     container_name: record_odometry
-    user: "1000:1000"  # Run container as host user
+    hostname: record_odometry
+    networks:
+      - ros-net
+    user: "1000:1000"
     depends_on:
       roscore:
         condition: service_healthy
     environment:
-      - ROS_HOME=/tmp/.ros
-      - OUTPUT_FILE_NAME=${OUTPUT_FILE_NAME}
-      - OUTPUT_PATH_HOST=${OUTPUT_PATH_HOST}
+      # Explicit ROS network configuration
+      ROS_MASTER_URI: http://roscore:11311
+      ROS_HOSTNAME: record_odometry
+      # Service-specific variables
+      ROS_HOME: /tmp/.ros
+      OUTPUT_FILE_NAME: ${OUTPUT_FILE_NAME}
+      OUTPUT_PATH_HOST: ${OUTPUT_PATH_HOST}
     volumes:
       - ${OUTPUT_PATH_HOST}:/trajectory_files
-    network_mode: "host"
     entrypoint: ["/app/entrypoints/entrypoint_record_odometry.sh"]
 
   play_bag:
     image: ghcr.io/comrob/slam-bench:latest
     init: true
     container_name: play_bag
-    user: "1000:1000"  # Run container as host user
+    hostname: play_bag
+    networks:
+      - ros-net
+    user: "1000:1000"
     depends_on:
       roscore:
         condition: service_healthy
     environment:
-      - BAGFILES_PATH_HOST=${BAGFILES_PATH_HOST}
-      - BAGFILE_NAME=${BAGFILE_NAME:-sensors}
-      - ROSBAG_PLAY_RATE=${ROSBAG_PLAY_RATE}
-      - TOPICS_FILE=${TOPICS_FILE}
-      - ROS_HOME=/tmp/.ros
+      # Explicit ROS network configuration
+      ROS_MASTER_URI: http://roscore:11311
+      ROS_HOSTNAME: play_bag
+      # Service-specific variables
+      BAGFILES_PATH_HOST: ${BAGFILES_PATH_HOST}
+      BAGFILE_NAME: ${BAGFILE_NAME:-sensors}
+      ROSBAG_PLAY_RATE: ${ROSBAG_PLAY_RATE}
+      TOPICS_FILE: ${TOPICS_FILE}
+      ROS_HOME: /tmp/.ros
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
-    network_mode: "host"
     entrypoint: ["/app/entrypoints/entrypoint_play_bag.sh"]
-  
-  evaluate_trajectory:
-    init: true
-    image: ghcr.io/comrob/slam-bench:latest
-    container_name: evaluate_trajectory
-    user: "1000:1000"  # Run container as host user
-    environment:
-      - TEST_MODE=${TEST_MODE}
-    volumes:
-      - ${REFERENCE_TRAJECTORY_FILE_HOST:-/reference_trajectory.txt}:/reference_trajectory.txt
-      - ${ESTIMATED_TRAJECTORY_FILE_HOST:-/estimated_trajectory.txt}:/estimated_trajectory.txt
-      - ${OUTPUT_PATH_HOST:-/evaluation_output}:/evaluation_output
-    entrypoint: ["/app/entrypoints/entrypoint_evaluate.sh"]
   
   run_slam_nvidia:
     image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}
     container_name: run_slam_nvidia
-    network_mode: "host"
+    hostname: run_slam_nvidia
+    networks:
+      - ros-net
     depends_on:
       roscore:
         condition: service_healthy
+    environment:
+      # Explicit ROS network configuration
+      ROS_MASTER_URI: http://roscore:11311
+      ROS_HOSTNAME: run_slam_nvidia
+      # Service-specific variables
+      DISPLAY: ${DISPLAY}
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
     deploy:
       resources:
         reservations:
@@ -77,21 +94,41 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${SLAM_CONFIG_OVERRIDE_FILE:-/dev/null}:/config/override.yaml
-    environment:
-      - DISPLAY=${DISPLAY}
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-  
+
   run_slam:
     image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}
     container_name: run_slam
-    network_mode: "host"
+    hostname: run_slam
+    networks:
+      - ros-net
     depends_on:
       roscore:
         condition: service_healthy
+    environment:
+      # Explicit ROS network configuration
+      ROS_MASTER_URI: http://roscore:11311
+      ROS_HOSTNAME: run_slam
+      # Service-specific variables
+      DISPLAY: ${DISPLAY}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${SLAM_CONFIG_OVERRIDE_FILE:-./config/slam/override_config.yaml.example}:/config/override.yaml
+
+  # This service does not perform ROS communication, so it doesn't need network config.
+  evaluate_trajectory:
+    init: true
+    image: ghcr.io/comrob/slam-bench:latest
+    container_name: evaluate_trajectory
+    user: "1000:1000"
     environment:
-      - DISPLAY=${DISPLAY}
-  
+      TEST_MODE: ${TEST_MODE}
+    volumes:
+      - ${REFERENCE_TRAJECTORY_FILE_HOST:-/reference_trajectory.txt}:/reference_trajectory.txt
+      - ${ESTIMATED_TRAJECTORY_FILE_HOST:-/estimated_trajectory.txt}:/estimated_trajectory.txt
+      - ${OUTPUT_PATH_HOST:-/evaluation_output}:/evaluation_output
+    entrypoint: ["/app/entrypoints/entrypoint_evaluate.sh"]
+
+# Define the custom bridge network for isolated ROS communication.
+networks:
+  ros-net:
+    driver: bridge

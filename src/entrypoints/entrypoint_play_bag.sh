@@ -47,6 +47,15 @@ else
     ls -lh /rosbag_files
 fi
 
+# --- NEW SECTION: Wait for roscore to be available ---
+echo "Verifying connection to ROS Master at $ROS_MASTER_URI..."
+until rostopic list > /dev/null 2>&1; do
+  echo "Waiting for roscore to be available..."
+  sleep 1
+done
+echo "Successfully connected to ROS Master."
+# ----------------------------------------------------
+
 ROSBAG_PLAY_COMMAND="rosbag play $BAG_FILES_TO_PLAY --clock --quiet -r$ROSBAG_PLAY_RATE"
 # if TOPICS is not empty, play only the topics in TOPICS
 if [ -n "$TOPICS" ]; then
@@ -54,9 +63,13 @@ if [ -n "$TOPICS" ]; then
     ROSBAG_PLAY_COMMAND="$ROSBAG_PLAY_COMMAND --topics ${TOPICS}"
 fi
 
-echo "Playing the bagfile..." 
+echo "Playing the bagfile..."
 echo $ROSBAG_PLAY_COMMAND
-$ROSBAG_PLAY_COMMAND
+
+if ! $ROSBAG_PLAY_COMMAND; then
+    echo "Error: Failed to play the bagfile."
+    exit 1
+fi
 
 echo "Played the bagfile. Exiting with success."
 exit 0
