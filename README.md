@@ -156,8 +156,11 @@ To submit your solution, package your Docker image and an optional description f
     Archive your final SLAM image into a `.tar` file.
 
     ```bash
-    docker save -o my-slam-image.tar your-slam-image:latest
+    docker save -o my-slam-image.tar your-slam-image:yourtag
     ```
+    Or using the repository script 
+    ```
+    ./docker/docker2tar.sh your-slam-image:yourtag
 
 2.  **(Optional) Create a `description.yaml`:**
     This file specifies playback parameters. **Check the official competition rules for the required fields and keys.**

@@ -1,3 +1,4 @@
+# In docker image: /config/override.yaml
 # This is an example of an override parameters file for SLAM.
 
 # liorf:
