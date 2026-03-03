@@ -1,16 +1,17 @@
-FROM ros:noetic
+FROM ros:jazzy
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    ros-noetic-rosbag \
-    ros-noetic-roslaunch \
-    ros-noetic-rospy \
+    ros-jazzy-ros2bag \
+    ros-jazzy-rosbag2-storage-mcap \
+    ros-jazzy-rmw-cyclonedds-cpp \
+    ros-jazzy-rclpy \
+    ros-jazzy-nav-msgs \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip3 install numpy==1.21.0 pandas==1.3.0 matplotlib==3.4.2
-RUN pip3 install evo --upgrade
+RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed numpy pandas matplotlib evo
 
 # Set up a standard working directory
 WORKDIR /app

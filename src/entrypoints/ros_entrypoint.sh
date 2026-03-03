@@ -3,9 +3,9 @@
 set -e
 
 # Source the ROS setup script to configure the environment
-source "/opt/ros/noetic/setup.bash"
+source "/opt/ros/jazzy/setup.bash"
 
-# Execute the command passed to this script (e.g., "roscore" or "roslaunch")
+# Execute the command passed to this script (e.g., "ros2 launch ...")
 # The 'exec' command replaces the shell process with the given command,
 # which is important for proper signal handling (like Ctrl+C).
 exec "$@"

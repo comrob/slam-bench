@@ -2,8 +2,8 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# Source ROS environment. roscore is guaranteed to be running by docker-compose.
-source /opt/ros/noetic/setup.bash
+# Source ROS 2 environment.
+source /opt/ros/jazzy/setup.bash
 
 echo "Starting odometry logger..."
 

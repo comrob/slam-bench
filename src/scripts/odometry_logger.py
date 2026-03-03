@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-import rospy
 import csv
 import os
+import time
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from nav_msgs.msg import Odometry
 
 # --- Configuration ---
@@ -18,75 +22,68 @@ if len(OUTPUT_FILE_NAME) == 0:
 CSV_FILE = os.path.join(OUTPUT_PATH_DIR, OUTPUT_FILE_NAME)
 
 
-def odometry_callback(msg):
-    """
-    Callback function to log odometry data in the TUM format.
-    This function is called every time a new message is received on the /estimated_odom topic.
-    """
-    # Extract position
-    x = msg.pose.pose.position.x
-    y = msg.pose.pose.position.y
-    z = msg.pose.pose.position.z
-    
-    # Extract orientation (in TUM format order: qx, qy, qz, qw)
-    qx = msg.pose.pose.orientation.x
-    qy = msg.pose.pose.orientation.y
-    qz = msg.pose.pose.orientation.z
-    qw = msg.pose.pose.orientation.w
-    
-    # Extract timestamp
-    timestamp = msg.header.stamp.to_sec()
+class OdometryLogger(Node):
+    def __init__(self):
+        super().__init__("odometry_logger")
+        self._last_log_time = 0.0
 
-    # Append the pose to the file
-    try:
-        with open(CSV_FILE, "a") as f:
-            # Use a space as a delimiter for the TUM format
-            writer = csv.writer(f, delimiter=" ")
-            # Write the data row: timestamp tx ty tz qx qy qz qw
-            writer.writerow([timestamp, x, y, z, qx, qy, qz, qw])
-    except IOError as e:
-        rospy.logerr_throttle(1.0, f"Could not write to file {CSV_FILE}: {e}")
-    
-    # Log the received data to the console (throttled to once every 10 seconds)
-    rospy.loginfo_throttle(10.0, f"Logged odometry data to {CSV_FILE}")
+        try:
+            os.makedirs(OUTPUT_PATH_DIR, exist_ok=True)
+            self.get_logger().info(f"Output directory is set to: {OUTPUT_PATH_DIR}")
+            with open(CSV_FILE, "w", encoding="utf-8"):
+                pass
+            self.get_logger().info(f"Successfully created/cleared trajectory file: {CSV_FILE}")
+        except OSError as error:
+            self.get_logger().error(f"Failed to create directory or file: {error}")
+            raise
 
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=10,
+        )
+        self.create_subscription(Odometry, "/estimated_odom", self.odometry_callback, qos_profile)
+        self.get_logger().info("Odometry logger started. Listening to /estimated_odom...")
+
+    def odometry_callback(self, msg: Odometry):
+        """
+        Callback function to log odometry data in the TUM format.
+        This function is called every time a new message is received on the /estimated_odom topic.
+        """
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+        z = msg.pose.pose.position.z
+
+        qx = msg.pose.pose.orientation.x
+        qy = msg.pose.pose.orientation.y
+        qz = msg.pose.pose.orientation.z
+        qw = msg.pose.pose.orientation.w
+
+        timestamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+
+        try:
+            with open(CSV_FILE, "a", encoding="utf-8") as output_file:
+                writer = csv.writer(output_file, delimiter=" ")
+                writer.writerow([timestamp, x, y, z, qx, qy, qz, qw])
+        except IOError as error:
+            self.get_logger().error(f"Could not write to file {CSV_FILE}: {error}")
+
+        now = time.time()
+        if now - self._last_log_time > 10.0:
+            self.get_logger().info(f"Logged odometry data to {CSV_FILE}")
+            self._last_log_time = now
 
 def main():
     """
     Initializes the ROS node, creates the output file, and starts logging.
     """
-    rospy.init_node("odometry_logger", anonymous=True)
-
-    # --- Setup Directory and File ---
-    # This section runs once when the node starts.
+    rclpy.init()
+    node = OdometryLogger()
     try:
-        # Ensure the output directory exists.
-        os.makedirs(OUTPUT_PATH_DIR, exist_ok=True)
-        rospy.loginfo(f"Output directory is set to: {OUTPUT_PATH_DIR}")
-        
-        # Create a new, empty file (or clear an existing one).
-        # This ensures the node starts with a fresh log file every time.
-        with open(CSV_FILE, "w") as f:
-            pass # This will create an empty file or truncate an existing one.
-        rospy.loginfo(f"Successfully created/cleared trajectory file: {CSV_FILE}")
-
-    except OSError as e:
-        rospy.logerr(f"Failed to create directory or file: {e}")
-        # If we can't create the file/dir, there's no point in continuing.
-        return
-
-    # --- Subscribe to Topic ---
-    # Subscribe to the /estimated_odom topic.
-    # The 'odometry_callback' function will be executed for each message.
-    rospy.Subscriber("/estimated_odom", Odometry, odometry_callback)
-    
-    rospy.loginfo("Odometry logger started. Listening to /estimated_odom...")
-    
-    # Keep the node running until it's shut down (e.g., by Ctrl+C).
-    rospy.spin()
+        rclpy.spin(node)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except rospy.ROSInterruptException:
-        pass
+    main()
