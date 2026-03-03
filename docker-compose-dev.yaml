@@ -1,13 +1,14 @@
+# filepath: /home/seva/repo/slam_competition/docker-compose-dev.yaml
+# Development mode: rebuild images locally instead of pulling from registry
+# This file overrides the image build settings for development
 services:
   play_bag:
     build: .
-    image: slam-bench:latest
 
   evaluate_trajectory:
     build: .
-    image: slam-bench:latest
   
   record_odometry:
     build: .
-    image: slam-bench:latest
-  
+
+

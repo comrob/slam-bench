@@ -102,7 +102,6 @@ services:
   evaluate_trajectory:
     init: true
     image: ghcr.io/comrob/slam-bench:latest
-    profiles: ["evaluate", "full"]
     container_name: evaluate_trajectory
     user: "1000:1000"
     environment:
