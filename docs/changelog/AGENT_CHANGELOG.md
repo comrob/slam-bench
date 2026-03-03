@@ -40,4 +40,9 @@ Policy:
 - Validation: Manual verification of cross-links and markdown formatting; WIP file tested as active task tracker.
 - Notes: This entry itself demonstrates the approved workflow—implementation tracked in temporary WIP file, finalized after user approval.
 
-````
+## 2026-03-03 19:15 (UTC)
+- Summary: Fixed docker-compose service override behavior in development mode.
+- Files: docker-compose.yaml, docker-compose-dev.yaml
+- Why: The dev compose file was completely replacing service definitions, stripping volume mounts and environment config. This prevented evaluate_trajectory from mounting reference.txt and caused evaluation pipeline failures.
+- Validation: Tested ./orchestrate.sh --stages evaluate before and after fix. Before: container init failed trying to mount /reference_trajectory.txt. After: evaluation runs successfully with proper volume mounts, generates metrics and PDFs.
+- Notes: Removed `profiles: ["evaluate", "full"]` from evaluate_trajectory (profiles were preventing direct service invocation). Simplified docker-compose-dev.yaml to only override `build` field, allowing service definitions from base compose to merge properly. All volume mounts, environment variables, and entrypoints now correctly inherited from docker-compose.yaml.

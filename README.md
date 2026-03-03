@@ -25,20 +25,22 @@ This framework is the official evaluation tool for the following robotics compet
     - [Features](#features)
     - [🏆 Used In](#-used-in)
   - [Table of Contents](#table-of-contents)
-    - [📚 Documentation Index](#-documentation-index)
+  - [📚 Documentation Index](#-documentation-index)
   - [📦 Prerequisites](#-prerequisites)
   - [🚀 Quick Setup](#-quick-setup)
   - [🎯 Usage Scenarios](#-usage-scenarios)
     - [👨‍💻 For Competition Participants](#-for-competition-participants)
       - [**Step-by-Step Example: Building and Testing a Local SLAM Image**](#step-by-step-example-building-and-testing-a-local-slam-image)
       - [**Preparing Your Own SLAM System**](#preparing-your-own-slam-system)
-            - [SLAM Developer Compatibility Contract](#slam-developer-compatibility-contract)
     - [큐 For Dataset Curators](#큐-for-dataset-curators)
   - [📁 Example Dataset](#-example-dataset)
+  - [🛠️ Dataset Preparation Tools](#️-dataset-preparation-tools)
   - [⚙️ Advanced Usage \& Details](#️-advanced-usage--details)
     - [Manual Control](#manual-control)
     - [Visualization with RViz](#visualization-with-rviz)
     - [Development Workflow (for this Repository)](#development-workflow-for-this-repository)
+    - [Agent / LLM Maintenance Rules](#agent--llm-maintenance-rules)
+    - [Additional Project Context](#additional-project-context)
   - [🛠 Troubleshooting](#-troubleshooting)
   - [📜 License](#-license)
 
@@ -49,6 +51,7 @@ This framework is the official evaluation tool for the following robotics compet
 Primary documentation files:
 
 - [README.md](README.md) — user-facing setup, usage, troubleshooting
+- [tools/README.md](tools/README.md) — dataset preparation utilities (GPS extraction, etc.)
 - [docs/SLAM_DEVELOPER_CONTRACT.md](docs/SLAM_DEVELOPER_CONTRACT.md) — SLAM image interface and compatibility contract
 - [docs/MIGRATION_CONTEXT.md](docs/MIGRATION_CONTEXT.md) — migration rationale, architecture, and current orchestration details
 - [docs/JAZZY_TRANSITION_REVIEW.md](docs/JAZZY_TRANSITION_REVIEW.md) — comprehensive ROS2 Jazzy transition verification and validation
@@ -236,6 +239,12 @@ To test the framework with your own custom dataset, it **must** follow the same 
     ├── intrinsics.yaml   # Intrinsic parameters for cameras, etc.
     └── extrinsics.yaml   # Extrinsic transformations between sensor frames
 ```
+
+-----
+
+## 🛠️ Dataset Preparation Tools
+
+For dataset preparation utilities (GPS extraction, reference trajectory generation, etc.), see [tools/README.md](tools/README.md).
 
 -----
 
