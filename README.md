@@ -1,4 +1,4 @@
-# SLAM Pipeline and Evaluation Framework
+# CRL Odometry/SLAM Benchmark Engine (SLAM-Codabench backend)
 
 [](https://opensource.org/licenses/MIT)
 
