@@ -1,5 +1,18 @@
 services:
 
+  zenoh_router:
+    image: ghcr.io/comrob/slam-bench:latest
+    init: true
+    container_name: zenoh_router
+    network_mode: host
+    environment:
+      ROS_DISTRO: jazzy
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
+      ROS_LOCALHOST_ONLY: ${ROS_LOCALHOST_ONLY:-1}
+    entrypoint: ["/app/entrypoints/ros_entrypoint.sh"]
+    command: ["ros2", "run", "rmw_zenoh_cpp", "rmw_zenohd"]
+
   record_odometry:
     image: ghcr.io/comrob/slam-bench:latest
     init: true
@@ -7,22 +20,22 @@ services:
     network_mode: host
     user: "1000:1000"
     depends_on:
+      zenoh_router:
+        condition: service_started
       run_slam:
         condition: service_started
     environment:
       # Explicit ROS 2 / DDS configuration
       ROS_DISTRO: jazzy
-      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
       ROS_LOCALHOST_ONLY: ${ROS_LOCALHOST_ONLY:-1}
-      CYCLONEDDS_URI: ${CYCLONEDDS_URI:-file:///config/dds/cyclonedds.xml}
       # Service-specific variables
       ROS_HOME: /tmp/.ros
       OUTPUT_FILE_NAME: ${OUTPUT_FILE_NAME}
       OUTPUT_PATH_HOST: ${OUTPUT_PATH_HOST}
     volumes:
       - ${OUTPUT_PATH_HOST}:/trajectory_files
-      - ./config/dds/cyclonedds.xml:/config/dds/cyclonedds.xml:ro
     entrypoint: ["/app/entrypoints/entrypoint_record_odometry.sh"]
 
   play_bag:
@@ -33,15 +46,16 @@ services:
     network_mode: host
     user: "1000:1000"
     depends_on:
+      zenoh_router:
+        condition: service_started
       run_slam:
         condition: service_started
     environment:
       # Explicit ROS 2 / DDS configuration
       ROS_DISTRO: jazzy
-      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
       ROS_LOCALHOST_ONLY: ${ROS_LOCALHOST_ONLY:-1}
-      CYCLONEDDS_URI: ${CYCLONEDDS_URI:-file:///config/dds/cyclonedds.xml}
       # Service-specific variables
       BAGFILES_PATH_HOST: ${BAGFILES_PATH_HOST}
       BAGFILE_NAME: ${BAGFILE_NAME:-sensors}
@@ -50,20 +64,21 @@ services:
       ROS_HOME: /tmp/.ros
     volumes:
       - ${BAGFILES_PATH_HOST}:/rosbag_files
-      - ./config/dds/cyclonedds.xml:/config/dds/cyclonedds.xml:ro
     entrypoint: ["/app/entrypoints/entrypoint_play_bag.sh"]
   
   run_slam_nvidia:
     image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}
     container_name: run_slam_nvidia
     network_mode: host
+    depends_on:
+      zenoh_router:
+        condition: service_started
     environment:
       # Explicit ROS 2 / DDS configuration
       ROS_DISTRO: jazzy
-      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
       ROS_LOCALHOST_ONLY: ${ROS_LOCALHOST_ONLY:-1}
-      CYCLONEDDS_URI: ${CYCLONEDDS_URI:-file:///config/dds/cyclonedds.xml}
       # Service-specific variables
       DISPLAY: ${DISPLAY}
       NVIDIA_VISIBLE_DEVICES: all
@@ -78,25 +93,25 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${SLAM_CONFIG_OVERRIDE_FILE:-/dev/null}:/config/override.yaml
-      - ./config/dds/cyclonedds.xml:/config/dds/cyclonedds.xml:ro
 
   run_slam:
     image: ${SLAM_IMAGE:-$CRL_SLAM_IMAGE}
     container_name: run_slam
     network_mode: host
+    depends_on:
+      zenoh_router:
+        condition: service_started
     environment:
       # Explicit ROS 2 / DDS configuration
       ROS_DISTRO: jazzy
-      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
       ROS_LOCALHOST_ONLY: ${ROS_LOCALHOST_ONLY:-1}
-      CYCLONEDDS_URI: ${CYCLONEDDS_URI:-file:///config/dds/cyclonedds.xml}
       # Service-specific variables
       DISPLAY: ${DISPLAY}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${SLAM_CONFIG_OVERRIDE_FILE:-./config/slam/override_config.yaml.example}:/config/override.yaml
-      - ./config/dds/cyclonedds.xml:/config/dds/cyclonedds.xml:ro
 
   # This service does not perform ROS communication, so it doesn't need network config.
   evaluate_trajectory:

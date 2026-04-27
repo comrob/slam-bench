@@ -4,7 +4,7 @@ FROM ros:jazzy
 RUN apt-get update && apt-get install -y \
     ros-jazzy-ros2bag \
     ros-jazzy-rosbag2-storage-mcap \
-    ros-jazzy-rmw-cyclonedds-cpp \
+    ros-jazzy-rmw-zenoh-cpp \
     ros-jazzy-rclpy \
     ros-jazzy-nav-msgs \
     python3-pip \
